@@ -12,4 +12,9 @@ export const MENU_ITEMS: MenuItem[] = [
         path: '/forms',
         icon: mdiListBox,
     },
+    {
+        name: 'PAI',
+        path: '/pai',
+        icon: mdiListBox,
+    },
 ];
