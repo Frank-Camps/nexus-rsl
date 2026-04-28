@@ -17,16 +17,3 @@ export interface IPaiEvent {
     createdAt: string;
 }
 
-export interface IPerson {
-    lastname?: string;
-    firstname?: string;
-    birthDate?: string; // Format ISO YYYY-MM-DD
-    personStatus?: string; // ex: Suspect, Témoin, Plaignant
-}
-
-export interface IVehicle {
-    plate?: string;
-    brand?: string;
-    model?: string;
-    carStatus?: string; // ex: Volé, Suspect, Remisé
-}
