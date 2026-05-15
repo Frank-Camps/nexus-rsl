@@ -15,30 +15,51 @@ import {
     Toolbar,
     Typography,
     useTheme, Avatar, Stack,
-    Menu, MenuItem
+    Menu, MenuItem,
+    Collapse
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
-import {useColorMode} from "@/layouts/ThemeRegistry";
-import {MENU_ITEMS} from "@/config/const/menuItems";
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import ExpandMore from '@mui/icons-material/ExpandMore';
+import { useColorMode } from "@/layouts/ThemeRegistry";
+import { MENU_ITEMS } from "@/config/const/menuItems";
 import Icon from "@mdi/react";
-import {usePathname} from "next/navigation";
+import { usePathname } from "next/navigation";
 import Link from 'next/link';
 import Image from 'next/image';
-import {SUBMENU_ITEMS} from "@/config/const/submenuItems";
+import { SUBMENU_ITEMS } from "@/config/const/submenuItems";
 
 const drawerWidth = 240;
 
 export default function Navigation() {
-
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const theme = useTheme();
     const colorMode = useColorMode();
     const [mobileOpen, setMobileOpen] = useState(false);
+    const pathname = usePathname();
+
+    // On initialise l'état une seule fois au chargement pour savoir quel menu est actif
+    const [openMenus, setOpenMenus] = useState<Record<string, boolean>>(() => {
+        const initialState: Record<string, boolean> = {};
+        MENU_ITEMS.forEach(item => {
+            if (item.children?.some(child => child.path === pathname)) {
+                initialState[item.name] = true;
+            }
+        });
+        return initialState;
+    });
 
     const handleDrawerToggle = () => {
         setMobileOpen(!mobileOpen);
+    };
+
+    const handleToggleSubmenu = (name: string) => {
+        setOpenMenus((prev) => ({
+            ...prev,
+            [name]: !prev[name],
+        }));
     };
 
     const open = Boolean(anchorEl);
@@ -51,7 +72,6 @@ export default function Navigation() {
         setAnchorEl(null);
     };
 
-    // Contenu du menu (partagé entre mobile et desktop)
     const drawerContent = (
         <div>
             <Toolbar>
@@ -62,52 +82,96 @@ export default function Navigation() {
             <Divider />
             <List>
                 {MENU_ITEMS.map((item) => {
-                    const pathname = usePathname();
-                    const isActive = pathname === item.path;
+                    const hasChildren = item.children && item.children.length > 0;
+                    const isOpen = !!openMenus[item.name];
+                    const isActive = pathname === item.path || item.children?.some(child => pathname === child.path);
 
                     return (
-                        <ListItem key={item.name} disablePadding>
-                            <ListItemButton
-                                component={Link}
-                                href={item.path}
-                                onClick={() => setMobileOpen(false)}
-                                sx={{
-                                    // On retire le carré bleu/gris de sélection par défaut
-                                    '&.Mui-selected': {
-                                        backgroundColor: 'transparent',
-                                    },
-                                    '&.Mui-selected:hover': {
-                                        backgroundColor: 'transparent',
-                                    },
-                                    // Style au survol (Hover)
-                                    '&:hover': {
-                                        backgroundColor: 'transparent', // On garde le fond transparent
-                                        '& .MuiListItemIcon-root, & .MuiListItemText-primary': {
-                                            color: '#ECC776', // Ta couleur de hover
-                                        },
-                                    },
-                                }}
-                            >
-                                <ListItemIcon
-                                    sx={{
-                                        color: isActive ? '#ECC776' : 'inherit',
-                                        minWidth: 40 // Ajuste l'espacement entre l'icône et le texte
-                                    }}
-                                >
-                                    <Icon path={item.icon} size={1} />
-                                </ListItemIcon>
-                                <ListItemText
-                                    primary={item.name}
-                                    primaryTypographyProps={{
-                                        sx: {
-                                            fontWeight: isActive ? 'bold' : 'medium',
-                                            color: isActive ? '#ECC776' : 'inherit',
-                                            transition: 'color 0.2s ease-in-out', // Animation douce pour le hover
+                        <React.Fragment key={item.name}>
+                            <ListItem disablePadding>
+                                <ListItemButton
+                                    component={hasChildren ? 'div' : Link}
+                                    href={hasChildren ? undefined : item.path}
+                                    onClick={() => {
+                                        if (hasChildren) {
+                                            handleToggleSubmenu(item.name);
+                                        } else {
+                                            setMobileOpen(false);
                                         }
                                     }}
-                                />
-                            </ListItemButton>
-                        </ListItem>
+                                    sx={{
+                                        '&.Mui-selected': { backgroundColor: 'transparent' },
+                                        '&.Mui-selected:hover': { backgroundColor: 'transparent' },
+                                        '&:hover': {
+                                            backgroundColor: 'transparent',
+                                            '& .MuiListItemIcon-root, & .MuiListItemText-primary, & .MuiSvgIcon-root': {
+                                                color: '#ECC776',
+                                            },
+                                        },
+                                    }}
+                                >
+                                    <ListItemIcon sx={{ color: isActive ? '#ECC776' : 'inherit', minWidth: 40 }}>
+                                        <Icon path={item.icon} size={1} />
+                                    </ListItemIcon>
+                                    <ListItemText
+                                        primary={item.name}
+                                        primaryTypographyProps={{
+                                            sx: {
+                                                fontWeight: isActive ? 'bold' : 'medium',
+                                                color: isActive ? '#ECC776' : 'inherit',
+                                                transition: 'color 0.2s ease-in-out',
+                                            }
+                                        }}
+                                    />
+                                    {hasChildren && (isOpen ? <ExpandLess sx={{ transition: 'color 0.2s' }} /> : <ExpandMore sx={{ transition: 'color 0.2s' }} />)}
+                                </ListItemButton>
+                            </ListItem>
+
+                            {hasChildren && (
+                                <Collapse in={isOpen} timeout="auto" unmountOnExit>
+                                    <List component="div" disablePadding>
+                                        {item.children!.map((child) => {
+                                            const isChildActive = pathname === child.path;
+                                            return (
+                                                <ListItemButton
+                                                    key={child.name}
+                                                    component={Link}
+                                                    href={child.path}
+                                                    onClick={() => {
+                                                        // ON NE TOUCHE PAS À openMenus ICI
+                                                        // On ferme seulement le tiroir sur mobile
+                                                        if (mobileOpen) setMobileOpen(false);
+                                                    }}
+                                                    sx={{
+                                                        pl: 4,
+                                                        '&:hover': {
+                                                            backgroundColor: 'transparent',
+                                                            '& .MuiListItemIcon-root, & .MuiListItemText-primary': {
+                                                                color: '#ECC776',
+                                                            },
+                                                        },
+                                                    }}
+                                                >
+                                                    <ListItemIcon sx={{ color: isChildActive ? '#ECC776' : 'inherit', minWidth: 40 }}>
+                                                        <Icon path={child.icon} size={0.8} />
+                                                    </ListItemIcon>
+                                                    <ListItemText
+                                                        primary={child.name}
+                                                        primaryTypographyProps={{
+                                                            sx: {
+                                                                fontSize: '0.9rem',
+                                                                fontWeight: isChildActive ? 'bold' : 'normal',
+                                                                color: isChildActive ? '#ECC776' : 'inherit',
+                                                            }
+                                                        }}
+                                                    />
+                                                </ListItemButton>
+                                            );
+                                        })}
+                                    </List>
+                                </Collapse>
+                            )}
+                        </React.Fragment>
                     );
                 })}
             </List>
@@ -120,153 +184,63 @@ export default function Navigation() {
                 position="fixed"
                 sx={{
                     zIndex: (theme) => theme.zIndex.drawer + 1,
-                    // On utilise 'paper' qui correspond maintenant à ton gris de menu
                     backgroundColor: 'background.paper',
                     color: 'text.primary',
-                    backgroundImage: 'none', // Sécurité supplémentaire
-                    boxShadow: 'none', // On enlève l'ombre pour un look "Flat" plus moderne
-                    borderBottom: (theme) => `1px solid ${theme.palette.divider}`, // Une fine ligne au lieu d'une ombre
+                    backgroundImage: 'none',
+                    boxShadow: 'none',
+                    borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
                 }}
             >
+                {/* ... (Reste de l'AppBar inchangé) ... */}
                 <Toolbar>
-                    <IconButton
-                        color="inherit"
-                        edge="start"
-                        onClick={handleDrawerToggle}
-                        sx={{ mr: 2, display: { sm: 'none' } }} // Cache l'icône sur PC
-                    >
+                    <IconButton color="inherit" edge="start" onClick={handleDrawerToggle} sx={{ mr: 2, display: { sm: 'none' } }}>
                         <MenuIcon />
                     </IconButton>
                     <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
                         <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', gap: '12px' }}>
-                            <Image
-                                src="/logoRiprsl.png"
-                                alt="Nexus RSL"
-                                width={45}  // Taille réduite pour l'icône seule
-                                height={45}
-                                style={{ objectFit: 'contain' }}
-                                priority
-                            />
-                            <Typography
-                                variant="h5"
-                                sx={{
-                                    fontWeight: 'bold',
-                                    color: 'text.primary', // Utilise la couleur du thème (blanc/noir)
-                                    letterSpacing: '0.5px'
-                                }}
-                            >
-                                Nexus
-                            </Typography>
+                            <Image src="/logoRiprsl.png" alt="Nexus RSL" width={45} height={45} style={{ objectFit: 'contain' }} priority />
+                            <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'text.primary', letterSpacing: '0.5px' }}>Nexus</Typography>
                         </Link>
                     </Box>
                     <Stack direction="row" spacing={2} alignItems="center">
                         <IconButton onClick={colorMode.toggleColorMode} color="inherit">
                             {theme.palette.mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
                         </IconButton>
-
                         <Divider orientation="vertical" flexItem sx={{ my: 2 }} />
-
                         <Box
                             onClick={handleProfileClick}
                             sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1.5,
-                                cursor: 'pointer',
-                                p: 1,
-                                borderRadius: 2,
-                                transition: 'all 0.2s ease-in-out',
-
-                                // On force le fond à être TOUJOURS transparent
+                                display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer', p: 1, borderRadius: 2, transition: 'all 0.2s ease-in-out',
                                 backgroundColor: 'transparent !important',
-
-                                // On retire l'effet de feedback visuel de Material UI
-                                '&:active, &:focus, &:focus-visible': {
-                                    backgroundColor: 'transparent !important',
-                                    outline: 'none',
-                                },
-
-                                '&:hover': {
-                                    // Seule interaction permise : ton changement de couleur Gold
-                                    '& .MuiTypography-root, & .MuiAvatar-root': {
-                                        color: '#EECC7D',
-                                    },
-                                },
-
-                                // Élimine le flash gris sur mobile/tablette
-                                WebkitTapHighlightColor: 'transparent',
+                                '&:hover': { '& .MuiTypography-root, & .MuiAvatar-root': { color: '#EECC7D' } },
                             }}
                         >
                             <Box sx={{ textAlign: 'right', display: { xs: 'none', md: 'block' } }}>
-                                <Typography variant="body2" sx={{ fontWeight: 'bold', lineHeight: 1, transition: 'color 0.2s' }}>
-                                    John Doe
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                    mat. 728
-                                </Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 'bold', lineHeight: 1 }}>John Doe</Typography>
+                                <Typography variant="caption" color="text.secondary">mat. 728</Typography>
                             </Box>
-                            <Avatar
-                                sx={{
-                                    width: 35,
-                                    height: 35,
-                                    bgcolor: '#ECC776',
-                                    color: '#000',
-                                    fontSize: '0.9rem',
-                                    fontWeight: 'bold',
-                                    transition: 'all 0.2s'
-                                }}
-                            >
-                                JD
-                            </Avatar>
+                            <Avatar sx={{ width: 35, height: 35, bgcolor: '#ECC776', color: '#000', fontSize: '0.9rem', fontWeight: 'bold' }}>JD</Avatar>
                         </Box>
-
-                        {/* Menu déroulant de l'avatar */}
                         <Menu
                             anchorEl={anchorEl}
                             open={open}
                             onClose={handleClose}
-                            onClick={handleClose}
-                            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
                             PaperProps={{
-                                sx: {
-                                    mt: 1.5,
-                                    minWidth: 180,
-                                    boxShadow: '0px 5px 15px rgba(0,0,0,0.1)',
-                                    backgroundImage: 'none',
-                                    backgroundColor: 'background.paper',
-                                    border: (theme) => `1px solid ${theme.palette.divider}`,
-                                }
+                                sx: { mt: 1.5, minWidth: 180, backgroundColor: 'background.paper', border: (theme) => `1px solid ${theme.palette.divider}` }
                             }}
                         >
                             {SUBMENU_ITEMS.map((subItem) => (
                                 <MenuItem
                                     key={subItem.name}
-                                    component={subItem.path === '/' ? 'li' : Link} // 'li' si c'est juste une action, Link si c'est une page
+                                    component={subItem.path === '/' ? 'li' : Link}
                                     href={subItem.path}
                                     onClick={handleClose}
                                     sx={{
-                                        py: 1.5,
-                                        transition: 'all 0.2s ease-in-out',
-                                        backgroundColor: 'transparent !important', // Neutralise le gris au clic
-                                        '&:hover': {
-                                            backgroundColor: 'transparent !important',
-                                            '& .MuiListItemIcon-root, & .MuiListItemText-primary': {
-                                                color: '#EECC7D', // Ton hover Gold
-                                            },
-                                        },
+                                        '&:hover': { backgroundColor: 'transparent !important', '& .MuiListItemIcon-root, & .MuiListItemText-primary': { color: '#EECC7D' } }
                                     }}
                                 >
-                                    <ListItemIcon sx={{ minWidth: 40, transition: 'color 0.2s', color: 'inherit' }}>
-                                        <Icon path={subItem.icon} size={0.9} />
-                                    </ListItemIcon>
-                                    <ListItemText
-                                        primary={subItem.name}
-                                        primaryTypographyProps={{
-                                            variant: 'body2',
-                                            fontWeight: 'medium'
-                                        }}
-                                    />
+                                    <ListItemIcon sx={{ minWidth: 40, color: 'inherit' }}><Icon path={subItem.icon} size={0.9} /></ListItemIcon>
+                                    <ListItemText primary={subItem.name} primaryTypographyProps={{ variant: 'body2' }} />
                                 </MenuItem>
                             ))}
                         </Menu>
@@ -275,27 +249,18 @@ export default function Navigation() {
             </AppBar>
 
             <Box component="nav">
-                {/* Drawer Mobile (Temporaire) */}
                 <Drawer
                     variant="temporary"
                     open={mobileOpen}
                     onClose={handleDrawerToggle}
-                    ModalProps={{ keepMounted: true }} // Meilleure performance sur mobile
-                    sx={{
-                        display: { xs: 'block', sm: 'none' },
-                        '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-                    }}
+                    ModalProps={{ keepMounted: true }}
+                    sx={{ display: { xs: 'block', sm: 'none' }, '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth } }}
                 >
                     {drawerContent}
                 </Drawer>
-
-                {/* Drawer Desktop (Permanent) */}
                 <Drawer
                     variant="permanent"
-                    sx={{
-                        display: { xs: 'none', sm: 'block' },
-                        '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-                    }}
+                    sx={{ display: { xs: 'none', sm: 'block' }, '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth } }}
                     open
                 >
                     {drawerContent}

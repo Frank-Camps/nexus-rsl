@@ -18,6 +18,7 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { IPaiEvent } from './interfaces/PaiEvent';
 import ReusableButton from '@/app/components/Button/ReusableButton'
+import InfoCard from '@/app/components/InfoCard/InfoCard';
 
 export default function PageAI() {
     const theme = useTheme();
