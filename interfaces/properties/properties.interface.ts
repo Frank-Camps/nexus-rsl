@@ -1,12 +1,53 @@
-export interface IOrigin {
+// ==========================================
+// 1. SECTION MÉTAPROPRIÉTÉS (Collection unique "Metadata")
+// ==========================================
+
+export type MetadataType =
+    | 'origin'
+    | 'sex'
+    | 'sector'
+    | 'hair-type'
+    | 'hair-color'
+    | 'eye-color'
+    | 'body-part'
+    | 'activity'
+    | 'person-status'
+    | 'condition'
+    | 'car-brand'
+    | 'car-color'
+    | 'car-status';
+
+export interface IMetadataItem {
     id: string;
+    type: MetadataType;
     name: string;
 }
 
-export interface ISex {
+// ==========================================
+// 2. SECTION CARACTÉRISTIQUES PHYSIQUES INDIVIDUELLES
+// ==========================================
+
+export interface ITattoo {
     id: string;
-    name: string;
+    bodyPartId: string; // Référence à l'id d'un IMetadataItem de type 'body-part'
+    description: string;
 }
+
+export interface IPiercing {
+    id: string;
+    bodyPartId: string; // Référence à l'id d'un IMetadataItem de type 'body-part'
+    description: string;
+}
+
+export interface IScar {
+    id: string;
+    bodyPartId: string; // Référence à l'id d'un IMetadataItem de type 'body-part'
+    description?: string; // Optionnel : pour ajouter des détails si nécessaire
+}
+
+// ==========================================
+// 3. SECTION ENTITÉS COMPLEXES & LIAISONS
+// ==========================================
 
 export interface IAddress {
     id: string;
@@ -15,78 +56,4 @@ export interface IAddress {
     city: string;
     postalCode: string;
 }
-
-export interface ISector {
-    id: string;
-    name: string;
-}
-
-export interface IHairType {
-    id: string;
-    name: string;
-}
-
-export interface IHairColor {
-    id: string;
-    name: string;
-}
-
-export interface IEyeColor {
-    id: string;
-    name: string;
-}
-
-export interface ITattoo {
-    id: string;
-    location: string;
-    description: string;
-}
-
-export interface IPiercing {
-    id: string;
-    location: string;
-    description: string;
-}
-
-export interface IScar {
-    id: string;
-    location: string;
-}
-
-export interface IActivity {
-    id: string;
-    name: string;
-}
-
-export interface IPersonStatus {
-    id: string;
-    name: string;
-}
-
-export interface ICondition {
-    id: string;
-    name: string;
-}
-
-export interface ICarBrand {
-    id: string;
-    name: string;
-}
-
-export interface ICarModel {
-    id: string;
-    name: string;
-}
-
-export interface ICarColor {
-    id: string;
-    name: string;
-}
-
-export interface ICarStatus {
-    id: string;
-    name: string;
-}
-
-
 

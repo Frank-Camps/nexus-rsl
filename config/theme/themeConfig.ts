@@ -6,7 +6,12 @@ export const getThemeOptions = (mode: PaletteMode): ThemeOptions => ({
     palette: {
         mode,
         primary: {
-            main: mode === 'light' ? '#1a237e' : '#90caf9',
+            // Ta couleur Gold officielle devient la couleur principale de l'application
+            main: '#ECC776',
+            // Optionnel: ajout d'une variante plus claire pour les états au survol (hover)
+            light: '#EECC7D',
+            // Optionnel: ajustement du contraste du texte sur les boutons contenus (contained)
+            contrastText: '#000000',
         },
         background: {
             // Ton gris spécifique pour le fond
@@ -27,9 +32,16 @@ export const getThemeOptions = (mode: PaletteMode): ThemeOptions => ({
                 },
             },
         },
+        MuiButton: {
+            styleOverrides: {
+                root: {
+                    // Uniformise le style des boutons à travers l'application en capitalisant sur le thème
+                    fontWeight: 'bold',
+                },
+            },
+        },
     },
     shape: {
         borderRadius: 8,
     },
-    // Tu pourras ajouter des overrides de composants ici plus tard (ex: boutons, inputs)
 });

@@ -42,17 +42,17 @@ export const MENU_ITEMS: MenuItem[] = [
     },
     {
         name: 'Configurations',
-        path: '/settings',
+        path: '/configurations',
         icon: mdiCog,
         children: [
             {
                 name: 'MétaDonnées',
-                path: '/settings/metaData',
+                path: '/configurations/metadata',
                 icon: mdiDatabaseSettings,
             },
             {
                 name: 'Utilisateurs',
-                path: '/settings/users',
+                path: '/configurations/users',
                 icon: mdiAccountGroup,
             }
         ]
