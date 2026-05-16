@@ -1,13 +1,10 @@
-import {
-    IMetadataItem,
-    IAddress,
-    ITattoo,
-    IPiercing,
-    IScar
-} from "@/interfaces/properties";
-import { IVehicle } from "@/interfaces/vehicule"; // Ajuste le chemin si nécessaire
+
+import {IVehicle} from "@/interfaces/vehicule/vehicule";
+import {IAddress, IMetadataItem, IPiercing, IScar, ITattoo} from "@/interfaces/properties/properties.interface";
+
 
 export interface IPerson {
+    _id?: string;
     lastname?: string;
     firstname?: string;
     nickname?: string;
@@ -20,6 +17,7 @@ export interface IPerson {
     option2?: boolean; // À renommer ou supprimer selon tes besoins futurs
     filesRelated?: string[]; // IDs ou chemins vers tes fichiers/pièces jointes
     relations?: IPerson[]; // Tableau de liaisons vers d'autres cibles
+    isTarget?: boolean;
 
     // Entités complexes (Collections séparées ou sous-documents riches)
     address: IAddress[];
