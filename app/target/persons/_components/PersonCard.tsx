@@ -11,6 +11,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { IPerson } from "@/interfaces/person/person";
+import {useConfirm} from "@/app/components/_confirmDialog/ConfirmDialog";
 
 interface PersonCardProps {
     person: IPerson;
@@ -21,6 +22,7 @@ interface PersonCardProps {
 export default function PersonCard({ person, onEdit, onDelete }: PersonCardProps) {
     const theme = useTheme();
     const router = useRouter();
+    const askConfirmation = useConfirm();
 
     // --- ÉTAT DU MENU DÉROULANT ---
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -52,9 +54,23 @@ export default function PersonCard({ person, onEdit, onDelete }: PersonCardProps
         if (onEdit) onEdit(person);
     };
 
-    const handleDeleteAction = (event: React.MouseEvent) => {
+    const handleDeleteAction = async (event: React.MouseEvent) => {
         handleMenuClose(event);
-        if (onDelete && person._id) onDelete(person._id);
+        const confirmed = await askConfirmation({
+            title: "Supprimer la fiche ?",
+            description: `Êtes-vous sûr de vouloir retirer ${person.firstname} ${person.lastname} des individus d'intérêt ? Cette action est irréversible.`,
+            confirmText: "Supprimer",
+            cancelText: "Annuler",
+            isDanger: true // Met le bouton de confirmation en rouge
+        });
+
+        // Si l'utilisateur clique sur Annuler, on arrête tout ici
+        if (!confirmed) return;
+
+        // Si confirmé, on déclenche le onDelete reçu du parent
+        if (onDelete && person._id) {
+            onDelete(person._id);
+        }
     };
 
     return (
@@ -82,7 +98,7 @@ export default function PersonCard({ person, onEdit, onDelete }: PersonCardProps
                     onClick={handleMenuOpen}
                     sx={{ backgroundColor: 'rgba(255,255,255,0.8)', '&:hover': { backgroundColor: '#fff' }, boxShadow: 1 }}
                 >
-                    <MoreVertIcon size="small" />
+                    <MoreVertIcon fontSize="small" />
                 </IconButton>
                 <Menu
                     anchorEl={anchorEl}

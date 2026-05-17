@@ -5,6 +5,7 @@ import Navigation from "@/layouts/Navigation";
 import ThemeRegistry from "@/layouts/ThemeRegistry";
 import { Box, Toolbar } from "@mui/material";
 import { Geist, Geist_Mono } from "next/font/google";
+import {ConfirmProvider} from "@/app/components/_confirmDialog/ConfirmDialog";
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -29,15 +30,17 @@ export default function RootLayout({
         <html lang="fr">
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased`} suppressHydrationWarning>
         <ThemeRegistry>
-            {/* 1. On affiche la barre de navigation et le Drawer */}
-            <Navigation />
+            <ConfirmProvider>
+                <Navigation />
 
-            {/* 2. On crée un espace de contenu décalé pour ne pas être SOUS le Drawer fixe */}
-            <Box component="main" sx={{ flexGrow: 1, p: 3, ml: { sm: `240px` } }}>
-                {/* Le Toolbar ici sert à pousser le contenu sous la AppBar du haut */}
-                <Toolbar />
-                {children}
-            </Box>
+                {/* 2. On crée un espace de contenu décalé pour ne pas être SOUS le Drawer fixe */}
+                <Box component="main" sx={{ flexGrow: 1, p: 3, ml: { sm: `240px` } }}>
+                    {/* Le Toolbar ici sert à pousser le contenu sous la AppBar du haut */}
+                    <Toolbar />
+                    {children}
+                </Box>
+            </ConfirmProvider>
+            {/* 1. On affiche la barre de navigation et le Drawer */}
         </ThemeRegistry>
         </body>
         </html>

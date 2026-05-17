@@ -23,6 +23,7 @@ import PersonDialog from '@/app/target/persons/_components/PersonDialog';
 import {getPersonsAction} from "../../../server/persons/getPersons";
 import {router} from "next/client";
 import {IPerson} from "@/interfaces/person/person";
+import {deletePersonByIdAction} from "@/server/persons/deletePersonById";
 
 export default function PersonsPage() {
     const theme = useTheme();
@@ -31,6 +32,7 @@ export default function PersonsPage() {
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [searchTerm, setSearchTerm] = useState('');
     const [openDialog, setOpenDialog] = useState(false);
+    const [selectedPerson, setSelectedPerson] = useState<IPerson | null>(null);
 
     // --- DONNÉES (LECTURE) ---
 // La clé reste un identifiant unique, mais le fetcher appelle directement l'action serveur
@@ -46,37 +48,44 @@ export default function PersonsPage() {
     const persons = fetchResult || [];
 
     // --- DONNÉES (CRÉATION) ---
-    const { trigger: triggerPost } = useSWRMutation('/api/persons', sendMutation);
+    const { trigger: triggerDelete } = useSWRMutation(
+        '/api/persons?isTarget=true',
+        async (url, { arg }: { arg: string }) => {
+            const res = await deletePersonByIdAction(arg);
+            if (!res.success) {
+                throw new Error(res.error);
+            }
+            return res;
+        }
+    );
 
     // --- LOGIQUE ---
     const handleViewChange = (event: React.MouseEvent<HTMLElement>, nextView: 'grid' | 'list') => {
         if (nextView !== null) setViewMode(nextView);
     };
 
-    const handleSavePerson = async (data: any) => {
+    const handleSavePerson = async (personId: string) => {};
+
+    const handleEditPerson = (person: IPerson) => {
+        console.log("Edit person", person);
+        setSelectedPerson(person); // On injecte les données de l'individu
+        setOpenDialog(true);       // On ouvre le formulaire
+    };
+
+    const handleDeletePerson = async (personId: string) => {
         try {
-            const response = await fetch('/api/persons', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            });
+            await triggerDelete(personId);
 
-            // On essaie de lire le JSON de réponse même si c'est une erreur
-            const result = await response.json();
-
-            if (!response.ok) {
-                // Si le serveur a renvoyé une erreur, on affiche le détail
-                console.error("Détail de l'erreur serveur:", result);
-                throw new Error(result.message || "Erreur lors de la sauvegarde");
-            }
-
-            console.log("Individu enregistré avec succès:", result);
-            setOpenDialog(false);
-            mutate('/api/persons');
-
-        } catch (error: any) {
-            // C'est ici que tu verras l'erreur finale dans ta console de navigateur
-            console.error("Erreur attrapée dans le front-end:", error.message);
+            console.log("Suppression réussie via SWR Mutation !");
+            // C'est ici que tu pourrais mettre un Toast de succès si tu veux
+        } catch (error: unknown) {
+            // Si l'action serveur a lancé une Error(res.error), elle est attrapée ici
+            return {
+                success: false,
+                error: error instanceof Error
+                    ? error.message
+                    : "Impossible de récupérer les individus."
+            };
         }
     };
 
@@ -182,7 +191,11 @@ export default function PersonsPage() {
                 <Grid container spacing={3}>
                     {filteredPersons.map((person: IPerson) => (
                         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3, xl: 2.4 }} key={person._id}>
-                            <PersonCard person={person} />
+                            <PersonCard
+                                person={person}
+                                onDelete={async (personId: string) => {await handleDeletePerson(personId)}}
+                                onEdit={(person: IPerson) => handleEditPerson(person)}
+                            />
                         </Grid>
                     ))}
                 </Grid>
