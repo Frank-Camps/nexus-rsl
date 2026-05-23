@@ -34,6 +34,7 @@ export default function PersonDetailsPage({ params }: PageProps) {
     const [openDialog, setOpenDialog] = useState(false);
 
     const { data: person, isLoading, error, mutate } = useSWR(id ? `/api/persons/${id}` : null, queryer);
+    const { data: metadata = [] } = useSWR('/api/metadata', queryer);
 
     const { trigger: triggerSave } = useSWRMutation(
         id ? `/api/persons/${id}` : null, // <-- Clé spécifique à cet individu
@@ -146,7 +147,7 @@ export default function PersonDetailsPage({ params }: PageProps) {
                             <SectionHeader icon={mdiShieldAccount} title="Identification & État Civil" />
                             <Grid container spacing={4}>
                                 <Grid size={{ xs: 12, sm: 4 }}><DetailField label="Date de naissance" value={person.birthDate ? new Date(person.birthDate).toLocaleDateString('fr-CA') : 'Inconnue'} /></Grid>
-                                <Grid size={{ xs: 12, sm: 4 }}><DetailField label="Lieu d'origine" value={person.origin?.name} /></Grid>
+                                <Grid size={{ xs: 12, sm: 4 }}><DetailField label="Race" value={person.origin?.name} /></Grid>
                                 <Grid size={{ xs: 12, sm: 4 }}><DetailField label="Sexe" value={person.sex?.name} /></Grid>
                                 <Grid size={{ xs: 12, sm: 4 }}><DetailField label="Permis de conduire" value={person.diverLicence} /></Grid>
                                 <Grid size={{ xs: 12, sm: 4 }}><DetailField label="Téléphone" value={person.phone} /></Grid>
@@ -160,7 +161,6 @@ export default function PersonDetailsPage({ params }: PageProps) {
                                 <Grid size={{ xs: 6, sm: 3 }}><DetailField label="Yeux" value={person.eyeColor?.name} /></Grid>
                                 <Grid size={{ xs: 6, sm: 3 }}><DetailField label="Cheveux (Couleur)" value={person.hairColor?.name} /></Grid>
                                 <Grid size={{ xs: 6, sm: 3 }}><DetailField label="Cheveux (Type)" value={person.hairType?.name} /></Grid>
-                                <Grid size={{ xs: 6, sm: 3 }}><DetailField label="Secteur d'activité" value={person.activitySector?.name} /></Grid>
                             </Grid>
                         </Paper>
 
@@ -169,15 +169,168 @@ export default function PersonDetailsPage({ params }: PageProps) {
                             <Grid container spacing={3}>
                                 {['tattoo', 'scars', 'piercings'].map((cat) => (
                                     <Grid size={{ xs: 12, md: 4 }} key={cat}>
-                                        <Typography variant="subtitle2" sx={{ mb: 2, textTransform: 'uppercase', color: 'primary.main', fontSize: '0.75rem', fontWeight: 'bold' }}>{cat}s</Typography>
-                                        {person[cat] && person[cat].length > 0 ? person[cat].map((item: any, idx: number) => (
-                                            <Box key={idx} sx={{ p: 1.5, mb: 1, bgcolor: 'action.hover', borderRadius: 1, borderLeft: `4px solid ${theme.palette.primary.main}` }}>
-                                                <Typography variant="body2">{item.description}</Typography>
-                                            </Box>
-                                        )) : <Typography variant="caption" color="text.disabled">Aucune donnée</Typography>}
+                                        <Typography variant="subtitle2" sx={{ mb: 2, textTransform: 'uppercase', color: 'primary.main', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                            {cat}s
+                                        </Typography>
+
+                                        {person[cat] && person[cat].length > 0 ? person[cat].map((item: any, idx: number) => {
+
+                                            // 🔍 On cherche la correspondance dans les métadonnées
+                                            const regionObj = metadata.find((m: any) => m._id === item.region || m.id === item.region);
+                                            const regionName = regionObj ? regionObj.name : 'Région inconnue';
+
+                                            return (
+                                                <Box key={idx} sx={{ p: 1.5, mb: 1, bgcolor: 'action.hover', borderRadius: 1, borderLeft: `4px solid ${theme.palette.primary.main}` }}>
+                                                    {/* Affichage de la région (ex: Bras droit) */}
+                                                    <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', display: 'block', mb: 0.5, textTransform: 'uppercase', fontSize: '0.65rem' }}>
+                                                        {regionName}
+                                                    </Typography>
+
+                                                    {/* Affichage de la description (ex: Devil Riders) */}
+                                                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                                        {item.description}
+                                                    </Typography>
+                                                </Box>
+                                            );
+                                        }) : (
+                                            <Typography variant="caption" color="text.disabled">Aucune donnée</Typography>
+                                        )}
                                     </Grid>
                                 ))}
                             </Grid>
+                        </Paper>
+
+                        <Paper sx={{ p: 4, borderRadius: 3, border: `1px solid ${theme.palette.divider}`, backgroundImage: 'none' }}>
+                            <SectionHeader icon={mdiHumanGreeting} title="Profil d'intérêt" />
+                            <Grid container spacing={4}>
+                                <Grid size={{ xs: 12, sm: 12 }}>
+                                    <Box>
+                                        <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: 0.5, fontWeight: 'bold' }}>
+                                            Condition en vigueur:
+                                        </Typography>
+                                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                                            {person.conditions && person.conditions.length > 0 ? (
+                                                person.conditions.map((conditionId: string, idx: number) => {
+                                                    // 🔍 On cherche la correspondance dans les métadonnées
+                                                    const activityObj = metadata.find((m: any) => m._id === conditionId || m.id === conditionId);
+                                                    const activityName = activityObj ? activityObj.name : 'Aucune Condition';
+
+                                                    return (
+                                                        <Box
+                                                            key={idx}
+                                                            sx={{
+                                                                p: 1.5,
+                                                                bgcolor: 'action.hover',
+                                                                borderRadius: 1,
+                                                                borderLeft: `4px solid ${theme.palette.primary.main}`
+                                                            }}
+                                                        >
+                                                            <Chip
+                                                                label={activityName}
+                                                                size="small"
+                                                                sx={{
+                                                                    fontWeight: 700,
+                                                                    bgcolor: theme.palette.primary.main + '15', // Fond transparent
+                                                                    borderRadius: 1
+                                                                }}
+                                                            />
+                                                        </Box>
+                                                    );
+                                                })
+                                            ) : (
+                                                <Typography variant="h6" sx={{ fontWeight: 600 }}>---</Typography>
+                                            )}
+                                        </Box>
+                                    </Box>
+                                </Grid>
+                                <Grid size={{ xs: 12, sm: 12 }}>
+                                    <Box>
+                                        <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: 0.5, fontWeight: 'bold' }}>
+                                            Secteurs
+                                        </Typography>
+
+                                        {/* Le conteneur Flexbox invisible qui gère l'alignement */}
+                                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mt: 1 }}>
+                                            {person.activitySector && person.activitySector.length > 0 ? (
+                                                person.activitySector.map((sectorId: string, idx: number) => {
+                                                    // 🔍 On cherche le nom du secteur dans les métadonnées
+                                                    const sectorObj = metadata.find((m: any) => m._id === sectorId || m.id === sectorId);
+                                                    const sectorName = sectorObj ? sectorObj.name : 'Secteur inconnu';
+
+                                                    return (
+                                                        // La boîte individuelle générée pour chaque secteur
+                                                        <Box
+                                                            key={idx}
+                                                            sx={{
+                                                                p: 1.5,
+                                                                bgcolor: 'action.hover',
+                                                                borderRadius: 1,
+                                                                borderLeft: `4px solid ${theme.palette.primary.main}`
+                                                            }}
+                                                        >
+                                                            <Chip
+                                                                label={sectorName}
+                                                                size="small"
+                                                                sx={{
+                                                                    fontWeight: 700,
+                                                                    bgcolor: theme.palette.primary.main + '15', // Fond transparent aux couleurs du thème
+                                                                    borderRadius: 1
+                                                                }}
+                                                            />
+                                                        </Box>
+                                                    );
+                                                })
+                                            ) : (
+                                                <Typography variant="h6" sx={{ fontWeight: 600 }}>---</Typography>
+                                            )}
+                                        </Box>
+                                    </Box>
+                                </Grid>
+                                <Grid size={{ xs: 12, sm: 12 }}>
+                                    <Box>
+                                        <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: 0.5, fontWeight: 'bold' }}>
+                                            Relié
+                                        </Typography>
+                                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                                            {person.activities && person.activities.length > 0 ? (
+                                                person.activities.map((activityId: string, idx: number) => {
+                                                    // 🔍 On cherche la correspondance dans les métadonnées
+                                                    const activityObj = metadata.find((m: any) => m._id === activityId || m.id === activityId);
+                                                    const activityName = activityObj ? activityObj.name : 'Activité inconnue';
+
+                                                    return (
+                                                        <Box
+                                                            key={idx}
+                                                            sx={{
+                                                                p: 1.5,
+                                                                bgcolor: 'action.hover',
+                                                                borderRadius: 1,
+                                                                borderLeft: `4px solid ${theme.palette.primary.main}`
+                                                            }}
+                                                        >
+                                                            <Chip
+                                                                label={activityName}
+                                                                size="small"
+                                                                sx={{
+                                                                    fontWeight: 700,
+                                                                    bgcolor: theme.palette.primary.main + '15', // Fond transparent
+                                                                    borderRadius: 1
+                                                                }}
+                                                            />
+                                                        </Box>
+                                                    );
+                                                })
+                                            ) : (
+                                                <Typography variant="h6" sx={{ fontWeight: 600 }}>---</Typography>
+                                            )}
+                                        </Box>
+                                    </Box>
+                                </Grid>
+                            </Grid>
+                        </Paper>
+
+                        <Paper sx={{ p: 4, borderRadius: 3, border: `1px solid ${theme.palette.divider}`, backgroundImage: 'none' }}>
+                            <SectionHeader icon={mdiHumanGreeting} title="Relations" />
                         </Paper>
 
                         <Paper sx={{ p: 4, borderRadius: 3, border: `1px solid ${theme.palette.divider}`, bgcolor: 'grey.50', backgroundImage: 'none' }}>

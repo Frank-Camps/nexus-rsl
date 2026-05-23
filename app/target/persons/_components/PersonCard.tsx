@@ -135,7 +135,7 @@ export default function PersonCard({ person, onEdit, onDelete }: PersonCardProps
                         />
                         <Box sx={{ overflow: 'hidden', flex: 1, pr: 3 }}> {/* pr: 3 pour éviter d'empiéter sur les 3 points */}
                             <Typography variant="caption" color={person.wanted ? "error" : "text.secondary"} sx={{ fontWeight: 'bold', fontSize: '0.65rem' }}>
-                                {person.wanted ? '⚠️ RECHERCHÉ' : 'DOSSIER #'+(person.fps?.split('-')[0] || '---')}
+                                {person.wanted ? '⚠️ RECHERCHÉ' : ``}
                             </Typography>
                             <Typography variant="h6" noWrap sx={{ fontWeight: 900, textTransform: 'uppercase', lineHeight: 1.1, mb: 0.5 }}>
                                 {person.lastname}
@@ -147,9 +147,9 @@ export default function PersonCard({ person, onEdit, onDelete }: PersonCardProps
                     </Stack>
 
                     <Stack spacing={0.8} sx={{ mt: 2.5 }}>
-                        <DataRow label="FPS" value={person.fps} color="error.main" bold />
+                        <DataRow label="DDN" value={person.birthDate} color="error.main" bold />
                         <DataRow label="Âge" value={calculateAge(person.birthDate)} />
-                        <DataRow label="Statut" value={(person.personStatus as any)?.name} />
+                        <DataRow label="Dossier SAAQ" value={person.diverLicence} />
                     </Stack>
                 </CardContent>
             </CardActionArea>
