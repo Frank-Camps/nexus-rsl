@@ -24,6 +24,7 @@ import {getPersonsAction} from "../../../server/persons/getPersons";
 import {router} from "next/client";
 import {IPerson} from "@/interfaces/person/person";
 import {deletePersonByIdAction} from "@/server/persons/deletePersonById";
+import {savePersonAction} from "@/server/persons/savePerson";
 
 export default function PersonsPage() {
     const theme = useTheme();
@@ -34,8 +35,7 @@ export default function PersonsPage() {
     const [openDialog, setOpenDialog] = useState(false);
     const [selectedPerson, setSelectedPerson] = useState<IPerson | null>(null);
 
-    // --- DONNÉES (LECTURE) ---
-// La clé reste un identifiant unique, mais le fetcher appelle directement l'action serveur
+
     const { data: fetchResult, isLoading, mutate } = useSWR('/api/persons?isTarget=true', async () => {
         const res = await getPersonsAction(true); // true pour isTargetOnly
         if (!res.success) {
@@ -44,42 +44,63 @@ export default function PersonsPage() {
         return res.data;
     });
 
-// On extrait les personnes de la réponse sécurisée, par défaut un tableau vide
     const persons = fetchResult || [];
 
-    // --- DONNÉES (CRÉATION) ---
-    const { trigger: triggerDelete } = useSWRMutation(
+    const { trigger: triggerSave } = useSWRMutation(
         '/api/persons?isTarget=true',
-        async (url, { arg }: { arg: string }) => {
-            const res = await deletePersonByIdAction(arg);
-            if (!res.success) {
-                throw new Error(res.error);
-            }
+        async (url, { arg }: { arg: IPerson }) => {
+            // arg sera le payload qu'on passe au trigger
+            const res = await savePersonAction(arg);
+            if (!res.success) throw new Error(res.error);
             return res;
+        },
+        {
+            onSuccess: () => {
+                // Ces actions s'exécutent uniquement si le serveur répond { success: true }
+                setOpenDialog(false);
+                setSelectedPerson(null);
+            },
+            onError: (error) => {
+                console.error("❌ Erreur SWR:", error.message);
+            }
         }
     );
+
+    // --- DONNÉES (CRÉATION) ---
+    const { trigger: triggerDelete } = useSWRMutation('/api/persons?isTarget=true', async (url, { arg }: { arg: string }) => {
+            const res = await deletePersonByIdAction(arg);
+            if (!res.success) throw new Error(res.error);
+            return res;
+    });
 
     // --- LOGIQUE ---
     const handleViewChange = (event: React.MouseEvent<HTMLElement>, nextView: 'grid' | 'list') => {
         if (nextView !== null) setViewMode(nextView);
     };
 
-    const handleSavePerson = async (personId: string) => {};
+    const handleSavePerson = async (person: IPerson) => {
+        try {
+            // 1. Préparation des données
+            const payload = selectedPerson?._id
+                ? { ...person, _id: selectedPerson._id }
+                : person;
+
+            await triggerSave(payload);
+
+        } catch (error: unknown) {
+            console.error("Erreur inattendue:", error instanceof Error ? error.message : error);
+        }
+    };
 
     const handleEditPerson = (person: IPerson) => {
-        console.log("Edit person", person);
-        setSelectedPerson(person); // On injecte les données de l'individu
-        setOpenDialog(true);       // On ouvre le formulaire
+        setSelectedPerson(person);
+        setOpenDialog(true);
     };
 
     const handleDeletePerson = async (personId: string) => {
         try {
             await triggerDelete(personId);
-
-            console.log("Suppression réussie via SWR Mutation !");
-            // C'est ici que tu pourrais mettre un Toast de succès si tu veux
         } catch (error: unknown) {
-            // Si l'action serveur a lancé une Error(res.error), elle est attrapée ici
             return {
                 success: false,
                 error: error instanceof Error
@@ -90,7 +111,7 @@ export default function PersonsPage() {
     };
 
     // Filtrage local pour la recherche
-    const filteredPersons = persons.filter((p: any) =>
+    const filteredPersons = persons.filter((p: IPerson) =>
         `${p.firstname} ${p.lastname}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.fps?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.nickname?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -244,7 +265,7 @@ export default function PersonsPage() {
                                     <TableCell align="right">
                                         <Button
                                             variant="text"
-                                            onClick={() => router.push(`/target/persons/${p._id}`)}
+                                            onClick={() => handleEditPerson(p)}
                                             sx={{ fontWeight: 'bold' }}
                                         >
                                             Détails
@@ -260,8 +281,12 @@ export default function PersonsPage() {
             {/* DIALOG DE CRÉATION RÉUTILISABLE */}
             <PersonDialog
                 open={openDialog}
-                onClose={() => setOpenDialog(false)}
+                onClose={() => {
+                    setOpenDialog(false)
+                    setSelectedPerson(null);
+                }}
                 onSave={handleSavePerson}
+                initialData={selectedPerson}
             />
 
         </Container>

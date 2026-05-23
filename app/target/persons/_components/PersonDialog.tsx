@@ -11,17 +11,14 @@ import {
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import useSWR from 'swr';
 import { queryer } from '@/lib/axios';
-
-// Icons
 import Icon from '@mdi/react';
 import {
     mdiAccountPlus, mdiCamera, mdiClose, mdiPlus, mdiDelete,
-    mdiAccountGroup, mdiCheckCircleOutline, mdiLinkVariant, mdiCar,
-    mdiIdentifier
+    mdiCheckCircleOutline, mdiLinkVariant, mdiIdentifier
 } from '@mdi/js';
+import {IPerson} from "@/interfaces/person/person";
 
 // --- HELPERS STYLISÉS ---
-
 const StyledTextField = (props: any) => (
     <TextField
         {...props}
@@ -102,31 +99,39 @@ const MultiSelect = ({ name, label, control, options }: any) => (
 );
 
 // --- COMPOSANT PRINCIPAL ---
+interface PersonDialogProps {
+    open: boolean;
+    onClose: () => void;
+    onSave?: (data: IPerson) => void; // On pourra typer le data plus tard selon ce que ton action attend
+    initialData?: IPerson | null; // Peut être une IPerson, null, ou absent (undefined)
+    isTargetDefault?: boolean;
+}
 
-export default function PersonDialog({ open, onClose, onSave, initialData, isTargetDefault = true }: any) {
+export default function PersonDialog({ open, onClose, onSave, initialData, isTargetDefault = true }: PersonDialogProps) {
     const theme = useTheme();
     const [tabIndex, setTabIndex] = useState(0);
     const { data: metadata = [] } = useSWR('/api/metadata', queryer);
     const { data: allPersons = [] } = useSWR('/api/persons', queryer);
 
     const { control, handleSubmit, reset, watch, setValue } = useForm({
-        defaultValues: {
-            firstname: '', lastname: '', nickname: '', birthDate: '',
-            diverLicence: '', fps: '', phone: '', email: '',
-            wanted: false, isTarget: isTargetDefault, notes: '',
-            sex: '', origin: '', personStatus: '',
-            hairType: '', hairColor: '', eyeColor: '',
-            activitySector: [] as string[],
-            filesRelated: [] as string[],
-            address: [] as any[],
-            tattoo: [] as any[],
-            piercings: [] as any[],
-            scars: [] as any[],
-            relations: [] as any[],
-            vehicles: [] as any[],
-            activities: [] as string[],
-            conditions: [] as string[]
-        }
+        // defaultValues: {
+        //     firstname: '', lastname: '', nickname: '', birthDate: '',
+        //     diverLicence: '', fps: '', phone: '', email: '',
+        //     wanted: false, isTarget: isTargetDefault, notes: '',
+        //     sex: '', origin: '', personStatus: '',
+        //     hairType: '', hairColor: '', eyeColor: '',
+        //     activitySector: [] as string[],
+        //     filesRelated: [] as string[],
+        //     address: [] as any[],
+        //     tattoo: [] as any[],
+        //     piercings: [] as any[],
+        //     scars: [] as any[],
+        //     relations: [] as any[],
+        //     vehicles: [] as any[],
+        //     activities: [] as string[],
+        //     conditions: [] as string[]
+        // }
+        defaultValues: initialData || null
     });
 
     const { fields: addrFields, append: appendAddr, remove: removeAddr } = useFieldArray({ control, name: "address" });
@@ -142,11 +147,79 @@ export default function PersonDialog({ open, onClose, onSave, initialData, isTar
         if (open) {
             setTabIndex(0);
             if (initialData) {
+                // Fonction utilitaire pour extraire proprement l'identifiant (ID) des objets de métadonnées
+                const extractId = (field: any) => {
+                    if (!field) return '';
+                    return typeof field === 'object' ? field.id || field._id || '' : field;
+                };
+
+                // Formater la date en YYYY-MM-DD exigé par le composant graphique natif
+                let formattedBirthDate = '';
+                if (initialData.birthDate) {
+                    const dateObj = new Date(initialData.birthDate);
+                    if (!isNaN(dateObj.getTime())) {
+                        formattedBirthDate = dateObj.toISOString().split('T')[0];
+                    }
+                }
+
                 reset({
-                    ...initialData,
+                    firstname: initialData.firstname || '',
+                    lastname: initialData.lastname || '',
+                    nickname: initialData.nickname || '',
+                    birthDate: formattedBirthDate,
+                    diverLicence: initialData.diverLicence || '',
+                    fps: initialData.fps || '',
+                    phone: initialData.phone || '',
+                    email: initialData.email || '',
+                    wanted: !!initialData.wanted,
+                    isTarget: initialData.isTarget !== undefined ? !!initialData.isTarget : isTargetDefault,
+                    notes: initialData?.notes || '',
+                    sex: extractId(initialData.sex),
+                    origin: extractId(initialData.origin),
+                    personStatus: extractId(initialData.personStatus),
+                    hairType: extractId(initialData.hairType),
+                    hairColor: extractId(initialData.hairColor),
+                    eyeColor: extractId(initialData.eyeColor),
+
+                    // Normalisation des tableaux simples (IDs ou objets)
                     activitySector: Array.isArray(initialData.activitySector)
-                        ? initialData.activitySector.map((s: any) => s.id || s)
-                        : initialData.activitySector ? [initialData.activitySector.id || initialData.activitySector] : []
+                        ? initialData.activitySector.map((s: any) => s.id || s._id || s)
+                        : [],
+                    activities: Array.isArray(initialData.activities)
+                        ? initialData.activities.map((a: any) => a.id || a._id || a)
+                        : [],
+                    conditions: Array.isArray(initialData.conditions)
+                        ? initialData.conditions.map((c: any) => c.id || c._id || c)
+                        : [],
+                    filesRelated: Array.isArray(initialData.filesRelated) ? initialData.filesRelated : [],
+
+                    // Normalisation des tableaux d'objets complexes (useFieldArray)
+                    address: Array.isArray(initialData.address) ? initialData.address.map((a: any) => ({
+                        civic: a.civic || '',
+                        apartment: a.apartment || '',
+                        street: a.street || '',
+                        city: a.city || '',
+                        postalCode: a.postalCode || '',
+                        type: a.type || 'Domicile'
+                    })) : [],
+                    tattoo: Array.isArray(initialData.tattoo) ? initialData.tattoo.map((t: any) => ({
+                        region: extractId(t.region),
+                        description: t.description || ''
+                    })) : [],
+                    scars: Array.isArray(initialData.scars) ? initialData.scars.map((s: any) => ({
+                        region: extractId(s.region),
+                        description: s.description || ''
+                    })) : [],
+                    piercings: Array.isArray(initialData.piercings) ? initialData.piercings.map((p: any) => ({
+                        region: extractId(p.region),
+                        description: p.description || ''
+                    })) : [],
+                    relations: Array.isArray(initialData.relations) ? initialData.relations.map((r: any) => ({
+                        person: typeof r.person === 'object' ? r.person?._id || r.person?.id || '' : r.person || ''
+                    })) : [],
+                    vehicles: Array.isArray(initialData.vehicles) ? initialData.vehicles.map((v: any) => ({
+                        info: v.info || ''
+                    })) : []
                 });
             } else {
                 reset({
@@ -330,12 +403,9 @@ export default function PersonDialog({ open, onClose, onSave, initialData, isTar
                                                                 {...selectField}
                                                                 label="Sujet"
                                                                 sx={{ borderRadius: '8px' }}
-                                                                // On s'assure que la valeur est l'ID string
                                                                 value={selectField.value || ''}
-                                                                // C'EST ICI QUE CA SE JOUE :
                                                                 renderValue={(selected) => {
                                                                     if (!selected) return "";
-                                                                    // On cherche dans allPersons en utilisant _id (standard MongoDB)
                                                                     const person = allPersons.find((p: any) => p._id === selected);
                                                                     return person ? `${person.lastname}, ${person.firstname}` : "Individu inconnu";
                                                                 }}

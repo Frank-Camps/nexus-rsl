@@ -1,6 +1,6 @@
 'use client';
 
-import React, { use } from 'react';
+import React, {use, useState} from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { queryer } from '@/lib/axios';
@@ -9,10 +9,7 @@ import {
     Divider, Button, CircularProgress, Breadcrumbs, Link,
     useTheme, Container
 } from '@mui/material';
-// Selon ta version, Grid est maintenant Grid2 par défaut
 import Grid from '@mui/material/Grid';
-
-// Icons
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import HomeIcon from '@mui/icons-material/Home';
 import PersonIcon from '@mui/icons-material/Person';
@@ -21,6 +18,10 @@ import EditIcon from '@mui/icons-material/Edit';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import Icon from '@mdi/react';
 import { mdiMapMarker, mdiHumanGreeting, mdiEye, mdiIdentifier, mdiShieldAccount } from '@mdi/js';
+import PersonDialog from "@/app/target/persons/_components/PersonDialog";
+import useSWRMutation from "swr/mutation";
+import {IPerson} from "@/interfaces/person/person";
+import {savePersonAction} from "@/server/persons/savePerson";
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -30,8 +31,38 @@ export default function PersonDetailsPage({ params }: PageProps) {
     const theme = useTheme();
     const router = useRouter();
     const { id } = use(params);
+    const [openDialog, setOpenDialog] = useState(false);
 
-    const { data: person, isLoading, error } = useSWR(id ? `/api/persons/${id}` : null, queryer);
+    const { data: person, isLoading, error, mutate } = useSWR(id ? `/api/persons/${id}` : null, queryer);
+
+    const { trigger: triggerSave } = useSWRMutation(
+        id ? `/api/persons/${id}` : null, // <-- Clé spécifique à cet individu
+        async (url, { arg }: { arg: IPerson }) => {
+            const res = await savePersonAction(arg);
+            if (!res.success) throw new Error(res.error);
+            return res;
+        },
+        {
+            onSuccess: () => {
+                setOpenDialog(false);
+            },
+            onError: (error) => {
+                console.error("❌ Erreur SWR:", error.message);
+                alert(`Erreur: ${error.message}`); // À remplacer par un Toast/Snackbar plus tard
+            }
+        }
+    );
+
+    const handleSavePerson = async (data: IPerson) => {
+        try {
+            // On s'assure d'inclure l'ID du sujet qu'on regarde actuellement
+            const payload = { ...data, _id: person._id };
+            await triggerSave(payload);
+        } catch (error: unknown) {
+            console.error("Erreur inattendue:", error instanceof Error ? error.message : error);
+        }
+    };
+
 
     if (isLoading) return (
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
@@ -74,7 +105,15 @@ export default function PersonDetailsPage({ params }: PageProps) {
                 </Box>
                 <Stack direction="row" spacing={2}>
                     <Button variant="outlined" startIcon={<PrintIcon />} size="large">Imprimer</Button>
-                    <Button variant="contained" startIcon={<EditIcon />} size="large" sx={{ fontWeight: 'bold' }}>Modifier</Button>
+                    <Button
+                        variant="contained"
+                        startIcon={<EditIcon />}
+                        size="large"
+                        sx={{ fontWeight: 'bold' }}
+                        onClick={() => setOpenDialog(true)}
+                    >
+                        Modifier
+                    </Button>
                 </Stack>
             </Stack>
 
@@ -150,6 +189,13 @@ export default function PersonDetailsPage({ params }: PageProps) {
                     </Stack>
                 </Grid>
             </Grid>
+
+            <PersonDialog
+                open={openDialog}
+                initialData={person}
+                onClose={() => setOpenDialog(false)}
+                onSave={handleSavePerson}
+            />
         </Container>
     );
 }
