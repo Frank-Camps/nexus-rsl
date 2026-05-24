@@ -22,7 +22,7 @@ import MetadataTable from "./_components/MetadataTable";
 // API Services
 import useSWR from 'swr';
 import useSWRMutation from 'swr/mutation';
-import { queryer, sendMutation, updateMutation, deleteMutation } from '@/lib/axios';
+import { queryer, sendMutation, updateMutation, deleteMutation } from '../../../lib/services/axios';
 
 export default function MetadataPage() {
     const theme = useTheme();

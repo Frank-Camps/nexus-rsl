@@ -3,7 +3,7 @@
 import React, {use, useState} from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import useSWR from 'swr';
-import { queryer } from '@/lib/axios';
+import { queryer } from '../../../../lib/services/axios';
 import {
     Box, Paper, Typography, Stack, Avatar, Chip,
     Divider, Button, CircularProgress, Breadcrumbs, Link,
@@ -20,7 +20,7 @@ import Icon from '@mdi/react';
 import {mdiMapMarker, mdiHumanGreeting, mdiEye, mdiIdentifier, mdiShieldAccount, mdiCar} from '@mdi/js';
 import PersonDialog from "@/app/target/persons/_components/PersonDialog";
 import useSWRMutation from "swr/mutation";
-import {IPerson} from "@/interfaces/person/person";
+import {IPerson} from "../../../../interfaces/person/person.interface";
 import {savePersonAction} from "@/server/persons/savePerson";
 
 interface PageProps {
@@ -122,7 +122,11 @@ export default function PersonDetailsPage({ params }: PageProps) {
                 <Grid size={{ xs: 12, md: 4 }}>
                     <Paper sx={{ p: 3, borderRadius: 3, border: `1px solid ${theme.palette.divider}`, backgroundImage: 'none' }}>
                         <Box sx={{ position: 'relative', mb: 3 }}>
-                            <Avatar src={person.filesRelated?.[0]} variant="rounded" sx={{ width: '100%', height: 450, borderRadius: 2, border: `4px solid ${theme.palette.background.paper}`, boxShadow: theme.shadows[3] }} />
+                            <Avatar
+                                src={person.photos?.find((p: any) => p.isMain)?.url || person.photos?.[0]?.url || undefined}
+                                variant="rounded"
+                                sx={{ width: '100%', height: 450, borderRadius: 2, border: `4px solid ${theme.palette.background.paper}`, boxShadow: theme.shadows[3] }}
+                            />
                             {person.wanted && (
                                 <Chip icon={<WarningAmberIcon style={{ color: 'white' }} />} label="RECHERCHÉ" color="error" sx={{ position: 'absolute', top: 15, right: 15, fontWeight: 'bold', px: 1 }} />
                             )}
@@ -395,7 +399,7 @@ export default function PersonDetailsPage({ params }: PageProps) {
                                                     <Stack direction="row" spacing={2} alignItems="center">
                                                         {/* Miniature de la photo de la personne reliée */}
                                                         <Avatar
-                                                            src={relatedPerson.filesRelated?.[0]}
+                                                            src={relatedPerson.photos?.find((p: any) => p.isMain)?.url || relatedPerson.photos?.[0]?.url || undefined}
                                                             variant="rounded"
                                                             sx={{
                                                                 width: 45,

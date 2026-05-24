@@ -1,7 +1,7 @@
 'use server';
 
 
-import dbConnect from "@/lib/mongodb";
+import dbConnect from "../../lib/services/mongodb";
 import Person from "@/lib/models/Person.model";
 
 export async function getPersonsAction(isTargetOnly: boolean = false) {

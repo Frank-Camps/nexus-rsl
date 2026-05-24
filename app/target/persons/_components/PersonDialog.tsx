@@ -10,13 +10,13 @@ import {
 } from '@mui/material';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import useSWR from 'swr';
-import { queryer } from '@/lib/axios';
+import { queryer } from '../../../../lib/services/axios';
 import Icon from '@mdi/react';
 import {
     mdiAccountPlus, mdiCamera, mdiClose, mdiPlus, mdiDelete,
     mdiCheckCircleOutline, mdiLinkVariant, mdiIdentifier
 } from '@mdi/js';
-import {IPerson} from "@/interfaces/person/person";
+import {IPerson} from "../../../../interfaces/person/person.interface";
 
 // --- HELPERS STYLISÉS ---
 const StyledTextField = (props: any) => (
@@ -185,6 +185,12 @@ export default function PersonDialog({ open, onClose, onSave, initialData, isTar
                     hairColor: extractId(initialData.hairColor),
                     eyeColor: extractId(initialData.eyeColor),
 
+                    photos: Array.isArray(initialData.photos) ? initialData.photos.map((p: any) => ({
+                        url: p.url || '',
+                        isMain: !!p.isMain
+                        // Note : On ne met pas de propriété 'file' ici, car l'image est déjà sur le serveur
+                    })) : [],
+
                     // Normalisation des tableaux simples (IDs ou objets)
                     activitySector: Array.isArray(initialData.activitySector)
                         ? initialData.activitySector.map((s: any) => s.id || s._id || s)
@@ -232,13 +238,67 @@ export default function PersonDialog({ open, onClose, onSave, initialData, isTar
                     firstname: '', lastname: '', nickname: '', birthDate: '', diverLicence: '', fps: '', phone: '', email: '',
                     isTarget: isTargetDefault, wanted: false, filesRelated: [],
                     sex: '', origin: '', personStatus: '', eyeColor: '', hairColor: '', hairType: '',
-                    activitySector: [], address: [], tattoo: [], piercings: [], scars: [], relations: [], vehicles: [], activities: [], conditions: []
+                    activitySector: [], address: [], tattoo: [], piercings: [], scars: [], relations: [], vehicles: [], activities: [], conditions: [],
+                    photos: [],
                 });
             }
         }
     }, [open, initialData, reset, isTargetDefault]);
 
     const getOptions = (type: string) => metadata.filter((m: any) => m.type === type);
+
+    const handleFormSubmit = async (formData: any) => {
+        try {
+            const finalPhotos = [];
+
+            // 1. On boucle sur les photos pour uploader les nouveaux fichiers physiques
+            for (const photo of (formData.photos || [])) {
+
+                if (photo.file) {
+                    // On prépare le conteneur de fichier pour l'envoi HTTP
+                    const uploadData = new FormData();
+                    uploadData.append('file', photo.file);
+
+                    // Envoi binaire vers la route d'API GridFS
+                    const res = await fetch('/api/photos', {
+                        method: 'POST',
+                        body: uploadData
+                    });
+
+                    if (!res.ok) throw new Error("Échec du téléversement de l'image");
+
+                    const result = await res.json();
+
+                    // On remplace le fichier par l'adresse de streaming finale
+                    finalPhotos.push({
+                        url: `/api/photos/${result.fileId}`,
+                        isMain: photo.isMain
+                    });
+                } else {
+                    // Si la photo n'a pas de fichier physique, c'est qu'elle était déjà sur le serveur
+                    finalPhotos.push({
+                        url: photo.url,
+                        isMain: photo.isMain
+                    });
+                }
+            }
+
+            // 2. On reconstruit l'objet complet avec les URLs nettoyées
+            const dataToSave = {
+                ...formData,
+                photos: finalPhotos
+            };
+
+            // 3. ON PASSE LE FLAMBEAU AU PARENT
+            if (onSave) {
+                await onSave(dataToSave);
+            }
+
+        } catch (error) {
+            console.error("Erreur lors du traitement du formulaire :", error);
+            alert("Impossible de traiter les images du dossier.");
+        }
+    };
 
     return (
         <Dialog open={open} onClose={onClose} fullWidth maxWidth="md" TransitionComponent={Fade} PaperProps={{ sx: { borderRadius: '16px', overflow: 'hidden' } }}>
@@ -257,32 +317,100 @@ export default function PersonDialog({ open, onClose, onSave, initialData, isTar
                 </Tabs>
             </DialogTitle>
 
-            <form onSubmit={handleSubmit(onSave)}>
+            <form onSubmit={handleSubmit(handleFormSubmit)}>
                 <DialogContent sx={{ p: 4, bgcolor: '#f8f9fa', minHeight: 500 }}>
 
                     {/* ONGLET 1 : IDENTITÉ */}
                     {tabIndex === 0 && (
                         <Stack spacing={3} sx={{ width: '100%' }}>
                             <Stack direction={{ xs: 'column', md: 'row' }} spacing={4}>
-                                <Stack alignItems="center" spacing={2} sx={{ minWidth: 200 }}>
+                                <Stack alignItems="center" spacing={2} sx={{ minWidth: 220 }}>
+                                    {/* 1. L'AVATAR PRINCIPAL (Mugshot) */}
                                     <Box sx={{ position: 'relative' }}>
-                                        <Avatar src={currentPhoto?.[0]} variant="rounded" sx={{ width: 180, height: 220, borderRadius: '12px', border: '1px solid #ddd', boxShadow: theme.shadows[2] }} />
-                                        {currentPhoto?.length > 0 && (
-                                            <IconButton
-                                                size="small"
-                                                onClick={() => setValue('filesRelated', [])}
-                                                sx={{ position: 'absolute', top: -10, right: -10, bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' }, boxShadow: 2 }}
-                                            >
-                                                <Icon path={mdiClose} size={0.6}/>
-                                            </IconButton>
-                                        )}
+                                        <Avatar
+                                            src={
+                                                watch('photos')?.find((p: any) => p.isMain)?.url ||
+                                                watch('photos')?.[0]?.url ||
+                                                undefined
+                                            }
+                                            variant="rounded"
+                                            sx={{ width: 180, height: 220, borderRadius: '12px', border: '1px solid #ddd', boxShadow: theme.shadows[2] }}
+                                        />
                                     </Box>
-                                    <Button variant="outlined" component="label" startIcon={<Icon path={mdiCamera} size={0.7}/>} sx={{ borderRadius: '20px' }}>
-                                        Photo <input type="file" hidden onChange={(e) => {
-                                        const file = e.target.files?.[0];
-                                        if (file) setValue('filesRelated', [URL.createObjectURL(file)]);
-                                    }} />
+
+                                    {/* 2. LE BOUTON D'AJOUT MULTIPLE */}
+                                    <Button variant="outlined" component="label" startIcon={<Icon path={mdiCamera} size={0.7}/>} sx={{ borderRadius: '20px', width: '100%' }}>
+                                        Ajouter Photos
+                                        <input
+                                            type="file"
+                                            multiple
+                                            accept="image/*"
+                                            hidden
+                                            onChange={(e) => {
+                                                const files = Array.from(e.target.files || []);
+                                                const currentPhotos = watch('photos') || [];
+
+                                                // On transforme les fichiers choisis en objets compréhensibles par notre interface
+                                                const newPhotos = files.map((file, index) => ({
+                                                    url: URL.createObjectURL(file), // Aperçu temporaire
+                                                    isMain: currentPhotos.length === 0 && index === 0, // Le premier ajouté devient principal par défaut
+                                                    file: file // On garde le fichier physique pour l'upload plus tard
+                                                }));
+
+                                                setValue('photos', [...currentPhotos, ...newPhotos]);
+                                            }}
+                                        />
                                     </Button>
+
+                                    {/* 3. LA MINI-GALERIE AVEC LES ÉTOILES */}
+                                    {(watch('photos') || []).length > 0 && (
+                                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2, justifyContent: 'center' }}>
+                                            {(watch('photos') || []).map((photo: any, idx: number) => (
+                                                <Box key={idx} sx={{ position: 'relative', width: 60, height: 60 }}>
+                                                    <Avatar src={photo.url} variant="rounded" sx={{ width: '100%', height: '100%' }} />
+
+                                                    {/* Bouton pour définir comme image principale */}
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={() => {
+                                                            const updatedPhotos = watch('photos').map((p: any, i: number) => ({
+                                                                ...p,
+                                                                isMain: i === idx
+                                                            }));
+                                                            setValue('photos', updatedPhotos);
+                                                        }}
+                                                        sx={{
+                                                            position: 'absolute', top: -8, left: -8,
+                                                            bgcolor: photo.isMain ? 'warning.main' : 'rgba(255,255,255,0.8)',
+                                                            color: photo.isMain ? 'white' : 'grey.500',
+                                                            '&:hover': { bgcolor: 'warning.light', color: 'white' },
+                                                            boxShadow: 1, padding: '2px'
+                                                        }}
+                                                    >
+                                                        {/* Remplace l'icône mdiStar par l'icône de ton choix si tu ne l'as pas importée */}
+                                                        <Icon path={mdiCheckCircleOutline} size={0.6}/>
+                                                    </IconButton>
+
+                                                    {/* Bouton pour supprimer la photo */}
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={() => {
+                                                            const updatedPhotos = watch('photos').filter((_: any, i: number) => i !== idx);
+                                                            setValue('photos', updatedPhotos);
+                                                        }}
+                                                        sx={{
+                                                            position: 'absolute', top: -8, right: -8,
+                                                            bgcolor: 'error.main', color: 'white',
+                                                            '&:hover': { bgcolor: 'error.dark' },
+                                                            boxShadow: 1, padding: '2px'
+                                                        }}
+                                                    >
+                                                        <Icon path={mdiClose} size={0.6}/>
+                                                    </IconButton>
+                                                </Box>
+                                            ))}
+                                        </Box>
+                                    )}
                                 </Stack>
 
                                 <Box sx={{ flexGrow: 1 }}>

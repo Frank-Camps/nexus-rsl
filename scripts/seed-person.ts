@@ -1,4 +1,4 @@
-import dbConnect from '../lib/mongodb';
+import dbConnect from '../lib/services/mongodb';
 import Person from '../lib/models/Person.model';
 import Metadata from '../lib/models/Metadata';
 

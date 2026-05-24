@@ -2,7 +2,7 @@
 
 
 import Person from '@/lib/models/Person.model';
-import dbConnect from "@/lib/mongodb";
+import dbConnect from "../../lib/services/mongodb";
 
 export async function deletePersonByIdAction(id: string) {
     try {

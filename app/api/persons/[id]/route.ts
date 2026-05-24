@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
+import dbConnect from '../../../../lib/services/mongodb';
 import Person from '@/lib/models/Person.model';
 import Metadata from '@/lib/models/Metadata'; // Si tu l'as
 import Vehicle from '@/lib/models/Vehicle.model'; // Le véhicule lui-même

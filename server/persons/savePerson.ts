@@ -1,8 +1,8 @@
 'use server';
 
 import Person from '@/lib/models/Person.model';
-import dbConnect from "@/lib/mongodb";
-import { IPerson } from "@/interfaces/person/person";
+import dbConnect from "../../lib/services/mongodb";
+import { IPerson } from "../../interfaces/person/person.interface";
 
 const sanitizeEmptyStrings = (obj: any) => {
     Object.keys(obj).forEach(key => {

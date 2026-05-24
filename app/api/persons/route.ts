@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
+import dbConnect from '../../../lib/services/mongodb';
 import Person from '@/lib/models/Person.model';
 import Metadata from '@/lib/models/Metadata'; // On s'assure qu'il est chargé
 
@@ -37,7 +37,6 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     try {
-        console.log('entered')
         await dbConnect();
         const data = await request.json();
 

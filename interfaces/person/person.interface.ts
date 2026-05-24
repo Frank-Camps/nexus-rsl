@@ -36,6 +36,7 @@ export interface IPerson {
     hairColor?: IMetadataItem;    // type: 'hair-color'
     eyeColor?: IMetadataItem;     // type: 'eye-color'
     personStatus?: IMetadataItem; // type: 'person-status'
+    photos: IPhoto[];
 
     // Tableaux de métadonnées (Pour les choix multiples)
     activities?: IMetadataItem[]; // type: 'activity'
@@ -50,4 +51,10 @@ export interface IPersonRelation {
 export interface IVehicleRelation {
     vehicle: string | IVehicle; // ID (string) avant le populate, objet complet après
     role?: string;
+}
+
+export interface IPhoto {
+    url: string;
+    isMain: boolean;
+    file?: File; // 🟢 Optionnel : Sert uniquement au Front-end pour garder le fichier en mémoire avant l'upload
 }

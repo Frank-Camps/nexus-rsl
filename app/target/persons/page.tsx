@@ -17,12 +17,12 @@ import Icon from '@mdi/react';
 import { mdiAccountMultipleCheck, mdiFilterVariant } from '@mdi/js';
 import useSWR from 'swr';
 import useSWRMutation from 'swr/mutation';
-import { queryer, sendMutation } from '@/lib/axios';
+import { queryer, sendMutation } from '../../../lib/services/axios';
 import PersonCard from '@/app/target/persons/_components/PersonCard';
 import PersonDialog from '@/app/target/persons/_components/PersonDialog';
 import {getPersonsAction} from "../../../server/persons/getPersons";
 import {router} from "next/client";
-import {IPerson} from "@/interfaces/person/person";
+import {IPerson} from "../../../interfaces/person/person.interface";
 import {deletePersonByIdAction} from "@/server/persons/deletePersonById";
 import {savePersonAction} from "@/server/persons/savePerson";
 

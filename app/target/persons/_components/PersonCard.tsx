@@ -10,7 +10,7 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { IPerson } from "@/interfaces/person/person";
+import { IPerson } from "../../../../interfaces/person/person.interface";
 import {useConfirm} from "@/app/components/_confirmDialog/ConfirmDialog";
 
 interface PersonCardProps {
@@ -129,7 +129,7 @@ export default function PersonCard({ person, onEdit, onDelete }: PersonCardProps
                 <CardContent sx={{ p: 2, width: '100%' }}>
                     <Stack direction="row" spacing={2} alignItems="flex-start">
                         <Avatar
-                            src={person.filesRelated?.[0]}
+                            src={person.photos?.find((p: any) => p.isMain)?.url || person.photos?.[0]?.url || undefined}
                             variant="rounded"
                             sx={{ width: 80, height: 100, borderRadius: 1, border: `1px solid ${theme.palette.divider}` }}
                         />
