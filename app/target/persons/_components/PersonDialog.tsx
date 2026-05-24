@@ -50,7 +50,10 @@ const MetadataDropdown = ({ name, label, control, options }: any) => (
                     sx={{ borderRadius: '8px', backgroundColor: '#ffffff' }}
                 >
                     {options.map((opt: any) => (
-                        <MenuItem key={opt.id} value={opt.id}>{opt.name}</MenuItem>
+                        // 🟢 FIX ICI : On vérifie opt._id en priorité (format MongoDB)
+                        <MenuItem key={opt._id || opt.id} value={opt._id || opt.id}>
+                            {opt.name}
+                        </MenuItem>
                     ))}
                 </Select>
             </FormControl>
@@ -112,6 +115,7 @@ export default function PersonDialog({ open, onClose, onSave, initialData, isTar
     const [tabIndex, setTabIndex] = useState(0);
     const { data: metadata = [] } = useSWR('/api/metadata', queryer);
     const { data: allPersons = [] } = useSWR('/api/persons', queryer);
+    const { data: allVehicles = [] } = useSWR('/api/vehicles', queryer);
 
     const { control, handleSubmit, reset, watch, setValue } = useForm({
         // defaultValues: {
@@ -138,8 +142,8 @@ export default function PersonDialog({ open, onClose, onSave, initialData, isTar
     const { fields: tattooFields, append: appendTattoo, remove: removeTattoo } = useFieldArray({ control, name: "tattoo" });
     const { fields: piercingFields, append: appendPiercing, remove: removePiercing } = useFieldArray({ control, name: "piercings" });
     const { fields: scarFields, append: appendScar, remove: removeScar } = useFieldArray({ control, name: "scars" });
-    const { fields: relFields, append: appendRel, remove: removeRel } = useFieldArray({ control, name: "relations" });
-    const { fields: vehFields, append: appendVeh, remove: removeVeh } = useFieldArray({ control, name: "vehicles" });
+    const { fields: relFields, append: appendRel, remove: removeRel } = useFieldArray({ control, name: "personRelations" });
+    const { fields: vehFields, append: appendVeh, remove: removeVeh } = useFieldArray({ control, name: "vehicleRelations" });
 
     const currentPhoto = watch('filesRelated');
 
@@ -214,11 +218,13 @@ export default function PersonDialog({ open, onClose, onSave, initialData, isTar
                         region: extractId(p.region),
                         description: p.description || ''
                     })) : [],
-                    relations: Array.isArray(initialData.relations) ? initialData.relations.map((r: any) => ({
-                        person: typeof r.person === 'object' ? r.person?._id || r.person?.id || '' : r.person || ''
+                    personRelations: Array.isArray(initialData?.personRelations) ? initialData.personRelations.map((r: any) => ({
+                        person: typeof r.person === 'object' ? r.person?._id || r.person?.id || '' : r.person || '',
+                        role: r.role || ''
                     })) : [],
-                    vehicles: Array.isArray(initialData.vehicles) ? initialData.vehicles.map((v: any) => ({
-                        info: v.info || ''
+                    vehicleRelations: Array.isArray(initialData?.vehicleRelations) ? initialData.vehicleRelations.map((v: any) => ({
+                        vehicle: typeof v.vehicle === 'object' ? v.vehicle?._id || v.vehicle?.id || '' : v.vehicle || '',
+                        role: v.role || ''
                     })) : []
                 });
             } else {
@@ -392,33 +398,48 @@ export default function PersonDialog({ open, onClose, onSave, initialData, isTar
                                 {relFields.map((field, index) => (
                                     <Paper key={field.id} variant="outlined" sx={{ p: 2, mb: 1, borderRadius: '12px', bgcolor: '#fff' }}>
                                         <Stack direction="row" spacing={2} alignItems="center">
-                                            <Box sx={{ flexGrow: 1 }}>
-                                                <Controller
-                                                    name={`relations.${index}.person`}
-                                                    control={control}
-                                                    render={({ field: selectField }) => (
-                                                        <FormControl fullWidth size="small">
-                                                            <InputLabel>Sujet</InputLabel>
-                                                            <Select
-                                                                {...selectField}
-                                                                label="Sujet"
-                                                                sx={{ borderRadius: '8px' }}
-                                                                value={selectField.value || ''}
-                                                                renderValue={(selected) => {
-                                                                    if (!selected) return "";
-                                                                    const person = allPersons.find((p: any) => p._id === selected);
-                                                                    return person ? `${person.lastname}, ${person.firstname}` : "Individu inconnu";
-                                                                }}
-                                                            >
-                                                                {allPersons.map((p: any) => (
-                                                                    <MenuItem key={p._id} value={p._id}>
-                                                                        {p.lastname}, {p.firstname}
-                                                                    </MenuItem>
-                                                                ))}
-                                                            </Select>
-                                                        </FormControl>
-                                                    )}
-                                                />
+                                            <Box sx={{ flexGrow: 1, display: 'flex', gap: 2 }}>
+
+                                                {/* 🟢 LE FIX : name utilise maintenant 'personRelations' */}
+                                                <Box sx={{ flex: 2 }}>
+                                                    <Controller
+                                                        name={`personRelations.${index}.person`}
+                                                        control={control}
+                                                        render={({ field: selectField }) => (
+                                                            <FormControl fullWidth size="small">
+                                                                <InputLabel>Sujet</InputLabel>
+                                                                <Select
+                                                                    {...selectField}
+                                                                    label="Sujet"
+                                                                    sx={{ borderRadius: '8px' }}
+                                                                    value={selectField.value || ''}
+                                                                    renderValue={(selected) => {
+                                                                        if (!selected) return "";
+                                                                        const person = allPersons.find((p: any) => p._id === selected);
+                                                                        return person ? `${person.lastname?.toUpperCase()}, ${person.firstname}` : "Individu inconnu";
+                                                                    }}
+                                                                >
+                                                                    {allPersons.map((p: any) => (
+                                                                        <MenuItem key={p._id} value={p._id}>
+                                                                            {p.lastname?.toUpperCase()}, {p.firstname}
+                                                                        </MenuItem>
+                                                                    ))}
+                                                                </Select>
+                                                            </FormControl>
+                                                        )}
+                                                    />
+                                                </Box>
+
+                                                {/* 🟢 SELECTION DU RÔLE DE LA RELATION (Complice, Suspect, etc.) */}
+                                                <Box sx={{ flex: 1 }}>
+                                                    <MetadataDropdown
+                                                        name={`personRelations.${index}.role`}
+                                                        label="Lien / Rôle"
+                                                        control={control}
+                                                        options={getOptions('person-status')}
+                                                    />
+                                                </Box>
+
                                             </Box>
                                             <IconButton color="error" onClick={() => removeRel(index)}>
                                                 <Icon path={mdiDelete} size={0.8}/>
@@ -426,7 +447,14 @@ export default function PersonDialog({ open, onClose, onSave, initialData, isTar
                                         </Stack>
                                     </Paper>
                                 ))}
-                                <Button size="small" startIcon={<Icon path={mdiLinkVariant} size={0.6}/>} onClick={() => appendRel({ person: '' })}>Lier individu</Button>
+                                {/* 🟢 LE FIX : On s'assure d'initialiser proprement l'objet avec person et role vides lors du clic */}
+                                <Button
+                                    size="small"
+                                    startIcon={<Icon path={mdiLinkVariant} size={0.6}/>}
+                                    onClick={() => appendRel({ person: '', role: '' })}
+                                >
+                                    Lier individu
+                                </Button>
                             </Box>
 
                             <Box>
@@ -434,18 +462,62 @@ export default function PersonDialog({ open, onClose, onSave, initialData, isTar
                                 {vehFields.map((field, index) => (
                                     <Paper key={field.id} variant="outlined" sx={{ p: 2, mb: 1, borderRadius: '12px', bgcolor: '#fff' }}>
                                         <Stack direction="row" spacing={2} alignItems="center">
-                                            <Box sx={{ flexGrow: 1 }}>
-                                                <Controller
-                                                    name={`vehicles.${index}.info`}
-                                                    control={control}
-                                                    render={({field: vehField}) => <StyledTextField {...vehField} label="Plaque / Modèle" fullWidth />}
-                                                />
+                                            <Box sx={{ flexGrow: 1, display: 'flex', gap: 2 }}>
+
+                                                {/* MENU DÉROULANT : CHOIX DU VÉHICULE */}
+                                                <Box sx={{ flex: 2 }}>
+                                                    <Controller
+                                                        name={`vehicleRelations.${index}.vehicle`}
+                                                        control={control}
+                                                        render={({ field: selectField }) => (
+                                                            <FormControl fullWidth size="small">
+                                                                <InputLabel>Sélectionner un véhicule</InputLabel>
+                                                                <Select
+                                                                    {...selectField}
+                                                                    label="Sélectionner un véhicule"
+                                                                    sx={{ borderRadius: '8px' }}
+                                                                    value={selectField.value || ''}
+                                                                    renderValue={(selected) => {
+                                                                        if (!selected) return "";
+                                                                        const veh = allVehicles.find((v: any) => v._id === selected);
+                                                                        return veh ? `Plaque : ${veh.plate}` : "Véhicule inconnu";
+                                                                    }}
+                                                                >
+                                                                    {allVehicles.map((v: any) => (
+                                                                        <MenuItem key={v._id} value={v._id}>
+                                                                            Plaque : {v.plate}
+                                                                        </MenuItem>
+                                                                    ))}
+                                                                </Select>
+                                                            </FormControl>
+                                                        )}
+                                                    />
+                                                </Box>
+
+                                                {/* 🟢 NOUVEAU MENU DÉROULANT : RÔLE (Via Métadonnées) */}
+                                                <Box sx={{ flex: 1 }}>
+                                                    <MetadataDropdown
+                                                        name={`vehicleRelations.${index}.role`}
+                                                        label="Rôle / Statut"
+                                                        control={control}
+                                                        options={getOptions('person-status')}
+                                                    />
+                                                </Box>
+
                                             </Box>
-                                            <IconButton color="error" onClick={() => removeVeh(index)}><Icon path={mdiDelete} size={0.8}/></IconButton>
+                                            <IconButton color="error" onClick={() => removeVeh(index)}>
+                                                <Icon path={mdiDelete} size={0.8}/>
+                                            </IconButton>
                                         </Stack>
                                     </Paper>
                                 ))}
-                                <Button size="small" startIcon={<Icon path={mdiPlus} size={0.6}/>} onClick={() => appendVeh({ info: '' })}>Ajouter véhicule</Button>
+                                <Button
+                                    size="small"
+                                    startIcon={<Icon path={mdiPlus} size={0.6}/>}
+                                    onClick={() => appendVeh({ vehicle: '', role: '' })}
+                                >
+                                    Lier un véhicule
+                                </Button>
                             </Box>
                         </Stack>
                     )}

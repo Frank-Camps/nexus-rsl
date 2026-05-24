@@ -1,5 +1,5 @@
 
-import {IVehicle} from "@/interfaces/vehicule/vehicule";
+import {IVehicle} from "../vehicle/vehicle";
 import {IAddress, IMetadataItem, IPiercing, IScar, ITattoo} from "@/interfaces/properties/properties.interface";
 
 
@@ -16,12 +16,12 @@ export interface IPerson {
     wanted?: boolean;
     option2?: boolean; // À renommer ou supprimer selon tes besoins futurs
     filesRelated?: string[]; // IDs ou chemins vers tes fichiers/pièces jointes
-    relations?: IPerson[]; // Tableau de liaisons vers d'autres cibles
+    personRelations?: IPersonRelation[];
+    vehicleRelations?: IVehicleRelation[];
     isTarget?: boolean;
 
     // Entités complexes (Collections séparées ou sous-documents riches)
     address: IAddress[];
-    vehicles?: IVehicle[];
 
     // Caractéristiques physiques individuelles (Contiennent des descriptions libres)
     tattoo?: ITattoo[];
@@ -40,4 +40,14 @@ export interface IPerson {
     // Tableaux de métadonnées (Pour les choix multiples)
     activities?: IMetadataItem[]; // type: 'activity'
     conditions?: IMetadataItem[]; // type: 'condition'
+}
+
+export interface IPersonRelation {
+    person: string | IPerson; // ID (string) avant le populate, objet complet après
+    role?: string;
+}
+
+export interface IVehicleRelation {
+    vehicle: string | IVehicle; // ID (string) avant le populate, objet complet après
+    role?: string;
 }

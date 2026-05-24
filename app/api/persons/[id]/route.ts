@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Person from '@/lib/models/Person.model';
-import Metadata from '@/lib/models/Metadata'; // Toujours importer pour le populate
+import Metadata from '@/lib/models/Metadata'; // Si tu l'as
+import Vehicle from '@/lib/models/Vehicle.model'; // Le véhicule lui-même
+import CarModel from '@/lib/models/CarModel';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
@@ -14,6 +16,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
             .populate({
                 path: 'sex origin personStatus hairColor hairType eyeColor',
                 model: Metadata
+            })
+            .populate({
+                path: 'personRelations.person',
+                model: Person // On indique explicitement à Mongoose de chercher dans la collection Person
+            })
+            .populate({
+                path: 'vehicleRelations.vehicle',
+                model: Vehicle,
+                populate: [
+                    { path: 'brand', model: Metadata },
+                    { path: 'model', model: CarModel },
+                    { path: 'color', model: Metadata }
+                ]
             });
 
         if (!person) {

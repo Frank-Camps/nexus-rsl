@@ -21,6 +21,10 @@ const PersonSchema = new Schema({
     // MODIFICATION ICI : On accepte un tableau de strings (IDs des secteurs)
     activitySector: [String],
     filesRelated: [String],
+    photos: [{
+        url: String, // Le lien vers l'image
+        isMain: { type: Boolean, default: false } // Le fameux flag pour le thumbnail
+    }],
     address: [{
         civic: String,
         apartment: String,
@@ -32,13 +36,14 @@ const PersonSchema = new Schema({
     tattoo: [{ region: String, description: String }],
     piercings: [{ region: String, description: String }],
     scars: [{ region: String, description: String }],
-    // MODIFICATION ICI : Pour matcher ton formulaire qui envoie { person: 'ID' }
-    relations: [{
-        person: String, // On stocke l'ID en string pour simplifier
+    personRelations: [{
+        person: { type: Schema.Types.ObjectId, ref: 'Person' },
+        role: String
     }],
-    // MODIFICATION ICI : Pour matcher ton formulaire qui envoie { info: 'PLAQUE' }
-    vehicles: [{
-        info: String
+
+    vehicleRelations: [{
+        vehicle: { type: Schema.Types.ObjectId, ref: 'Vehicle' },
+        role: String
     }],
     activities: [String],
     conditions: [String]

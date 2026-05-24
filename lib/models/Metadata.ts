@@ -14,8 +14,11 @@ const MetadataSchema = new Schema({
     timestamps: true,
     toJSON: {
         transform: (doc, ret) => {
-            ret.id = ret._id.toString();
-            delete ret._id;
+            // 🟢 LE FIX : On vérifie que _id existe avant d'appeler toString()
+            if (ret._id) {
+                ret.id = ret._id.toString();
+                delete ret._id;
+            }
             delete ret.__v;
         }
     }

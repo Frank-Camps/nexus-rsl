@@ -7,7 +7,7 @@ import { queryer } from '@/lib/axios';
 import {
     Box, Paper, Typography, Stack, Avatar, Chip,
     Divider, Button, CircularProgress, Breadcrumbs, Link,
-    useTheme, Container
+    useTheme, Container, List, ListItem, ListItemButton
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
@@ -17,7 +17,7 @@ import PrintIcon from '@mui/icons-material/Print';
 import EditIcon from '@mui/icons-material/Edit';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import Icon from '@mdi/react';
-import { mdiMapMarker, mdiHumanGreeting, mdiEye, mdiIdentifier, mdiShieldAccount } from '@mdi/js';
+import {mdiMapMarker, mdiHumanGreeting, mdiEye, mdiIdentifier, mdiShieldAccount, mdiCar} from '@mdi/js';
 import PersonDialog from "@/app/target/persons/_components/PersonDialog";
 import useSWRMutation from "swr/mutation";
 import {IPerson} from "@/interfaces/person/person";
@@ -331,6 +331,228 @@ export default function PersonDetailsPage({ params }: PageProps) {
 
                         <Paper sx={{ p: 4, borderRadius: 3, border: `1px solid ${theme.palette.divider}`, backgroundImage: 'none' }}>
                             <SectionHeader icon={mdiHumanGreeting} title="Relations" />
+
+                            {/* 👥 LISTE DES INDIVIDUS RELIÉS */}
+                            <List disablePadding sx={{ mt: 2 }}>
+                                {person.personRelations && person.personRelations.length > 0 ? (
+                                    person.personRelations.map((rel: any, idx: number) => {
+                                        const relatedPerson = rel.person;
+
+                                        if (!relatedPerson) {
+                                            return (
+                                                <ListItem key={idx} disablePadding sx={{ mb: 1.5 }}>
+                                                    <Typography variant="caption" color="error" sx={{ fontStyle: 'italic' }}>
+                                                        ⚠️ Individu lié introuvable (donnée supprimée ou corrompue).
+                                                    </Typography>
+                                                </ListItem>
+                                            );
+                                        }
+
+                                        // Sécurité : Si le back-end n'a pas encore peuplé l'objet et renvoie juste une string (l'ID)
+                                        if (typeof relatedPerson === 'string') {
+                                            return (
+                                                <Typography key={idx} variant="caption" color="text.disabled" sx={{ display: 'block', mb: 1 }}>
+                                                    Lien non peuplé (ID : {relatedPerson})
+                                                </Typography>
+                                            );
+                                        }
+
+                                        // 🔍 On cherche la correspondance du rôle dans les métadonnées (ex: SUS, Témoin, Complice)
+                                        const roleObj = metadata.find((m: any) => m._id === rel.role || m.id === rel.role);
+                                        const roleName = roleObj ? roleObj.name : 'Relation';
+
+                                        // 📅 Formatage propre de la date de naissance du sujet lié
+                                        let formattedBirthDate = 'Inconnue';
+                                        if (relatedPerson.birthDate) {
+                                            const dateObj = new Date(relatedPerson.birthDate);
+                                            if (!isNaN(dateObj.getTime())) {
+                                                formattedBirthDate = dateObj.toISOString().split('T')[0];
+                                            }
+                                        }
+
+                                        return (
+                                            <ListItem
+                                                key={idx}
+                                                disablePadding
+                                                sx={{
+                                                    mb: 1.5,
+                                                    bgcolor: 'action.hover',
+                                                    borderRadius: 2,
+                                                    overflow: 'hidden',
+                                                    transition: '0.2s',
+                                                    '&:hover': {
+                                                        bgcolor: 'action.selected',
+                                                        transform: 'translateX(4px)'
+                                                    }
+                                                }}
+                                            >
+                                                {/* Le bouton devient un vrai lien Next.js vers la fiche de la personne liée */}
+                                                <ListItemButton
+                                                    component={Link}
+                                                    href={`/target/persons/${relatedPerson._id}`}
+                                                    sx={{ p: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                                                >
+                                                    <Stack direction="row" spacing={2} alignItems="center">
+                                                        {/* Miniature de la photo de la personne reliée */}
+                                                        <Avatar
+                                                            src={relatedPerson.filesRelated?.[0]}
+                                                            variant="rounded"
+                                                            sx={{
+                                                                width: 45,
+                                                                height: 55,
+                                                                borderRadius: '6px',
+                                                                border: '1px solid',
+                                                                borderColor: 'divider'
+                                                            }}
+                                                        />
+                                                        <Box>
+                                                            {/* NOM en majuscules et Prénom */}
+                                                            <Typography variant="body2" sx={{ fontWeight: 800, color: 'text.primary' }}>
+                                                                {relatedPerson.lastname?.toUpperCase()}, {relatedPerson.firstname}
+                                                            </Typography>
+                                                            {/* Date de naissance */}
+                                                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                                                Né(e) le : {formattedBirthDate}
+                                                            </Typography>
+                                                        </Box>
+                                                    </Stack>
+
+                                                    {/* Badge du rôle (Statut de la relation) */}
+                                                    {rel.role && (
+                                                        <Chip
+                                                            label={roleName}
+                                                            size="small"
+                                                            sx={{
+                                                                fontWeight: 800,
+                                                                fontSize: '0.65rem',
+                                                                borderRadius: 1,
+                                                                bgcolor: roleName === 'SUS' ? 'error.main' : theme.palette.primary.main + '15',
+                                                                color: roleName === 'SUS' ? 'white' : 'primary.main',
+                                                            }}
+                                                        />
+                                                    )}
+                                                </ListItemButton>
+                                            </ListItem>
+                                        );
+                                    })
+                                ) : (
+                                    <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 1 }}>
+                                        Aucun individu relié à ce dossier.
+                                    </Typography>
+                                )}
+                            </List>
+                        </Paper>
+
+                        {/* 🚗 VÉHICULES ASSOCIÉS */}
+                        <Paper sx={{ p: 4, borderRadius: 3, border: `1px solid ${theme.palette.divider}`, backgroundImage: 'none', mt: 3 }}>
+                            <SectionHeader icon={mdiCar} title="Véhicules" />
+
+                            <List disablePadding sx={{ mt: 2 }}>
+                                {person.vehicleRelations && person.vehicleRelations.length > 0 ? (
+                                    person.vehicleRelations.map((rel: any, idx: number) => {
+                                        const relatedVehicle = rel.vehicle;
+
+                                        // Sécurité 1 : Véhicule supprimé de la BD
+                                        if (!relatedVehicle) {
+                                            return (
+                                                <ListItem key={idx} disablePadding sx={{ mb: 1.5 }}>
+                                                    <Typography variant="caption" color="error" sx={{ fontStyle: 'italic' }}>
+                                                        ⚠️ Véhicule lié introuvable (donnée supprimée ou corrompue).
+                                                    </Typography>
+                                                </ListItem>
+                                            );
+                                        }
+
+                                        // Sécurité 2 : Le back-end n'a pas fait son .populate()
+                                        if (typeof relatedVehicle === 'string') {
+                                            return (
+                                                <Typography key={idx} variant="caption" color="text.disabled" sx={{ display: 'block', mb: 1 }}>
+                                                    Lien non peuplé (ID : {relatedVehicle})
+                                                </Typography>
+                                            );
+                                        }
+
+                                        // 🔍 On cherche la correspondance du rôle dans les métadonnées (ex: Propriétaire, Conducteur)
+                                        const roleObj = metadata.find((m: any) => m._id === rel.role || m.id === rel.role);
+                                        const roleName = roleObj ? roleObj.name : 'Relation';
+
+                                        const brandName = relatedVehicle.brand?.name || 'Marque inconnue';
+                                        const modelName = relatedVehicle.model?.name || 'Modèle inconnu';
+                                        const colorName = relatedVehicle.color?.name || '';
+                                        const yearStr = relatedVehicle.year ? relatedVehicle.year : 'Année inconnue';
+
+                                        return (
+                                            <ListItem
+                                                key={idx}
+                                                disablePadding
+                                                sx={{
+                                                    mb: 1.5,
+                                                    bgcolor: 'action.hover',
+                                                    borderRadius: 2,
+                                                    overflow: 'hidden',
+                                                    transition: '0.2s',
+                                                    '&:hover': {
+                                                        bgcolor: 'action.selected',
+                                                        transform: 'translateX(4px)'
+                                                    }
+                                                }}
+                                            >
+                                                <ListItemButton
+                                                    component={Link}
+                                                    href={`/target/vehicles/${relatedVehicle._id}`}
+                                                    sx={{ p: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                                                >
+                                                    <Stack direction="row" spacing={2} alignItems="center">
+                                                        <Avatar
+                                                            variant="rounded"
+                                                            sx={{
+                                                                width: 45,
+                                                                height: 55,
+                                                                borderRadius: '6px',
+                                                                bgcolor: 'background.paper',
+                                                                border: '1px solid',
+                                                                borderColor: 'divider',
+                                                                color: 'text.secondary'
+                                                            }}
+                                                        >
+                                                            <Icon path={mdiCar} size={1.2} />
+                                                        </Avatar>
+                                                        <Box>
+                                                            {/* TITRE PRINCIPAL : MARQUE, MODÈLE, ANNÉE, COULEUR */}
+                                                            <Typography variant="body2" sx={{ fontWeight: 800, color: 'text.primary', textTransform: 'uppercase' }}>
+                                                                {brandName} {modelName} {yearStr} {colorName && `- ${colorName}`}
+                                                            </Typography>
+
+                                                            {/* SOUS-TITRE : PLAQUE D'IMMATRICULATION */}
+                                                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, fontSize: '0.75rem' }}>
+                                                                Plaque : <Box component="span" sx={{ fontWeight: 'bold', color: 'text.primary', letterSpacing: 1 }}>{relatedVehicle.plate || 'INCONNUE'}</Box>
+                                                            </Typography>
+                                                        </Box>
+                                                    </Stack>
+
+                                                    {rel.role && (
+                                                        <Chip
+                                                            label={roleName}
+                                                            size="small"
+                                                            sx={{
+                                                                fontWeight: 800,
+                                                                fontSize: '0.65rem',
+                                                                borderRadius: 1,
+                                                                bgcolor: theme.palette.primary.main + '15',
+                                                                color: 'primary.main',
+                                                            }}
+                                                        />
+                                                    )}
+                                                </ListItemButton>
+                                            </ListItem>
+                                        );
+                                    })
+                                ) : (
+                                    <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 1 }}>
+                                        Aucun véhicule relié à ce dossier.
+                                    </Typography>
+                                )}
+                            </List>
                         </Paper>
 
                         <Paper sx={{ p: 4, borderRadius: 3, border: `1px solid ${theme.palette.divider}`, bgcolor: 'grey.50', backgroundImage: 'none' }}>
