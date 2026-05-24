@@ -255,7 +255,7 @@ export default function MetadataPage() {
                 </Grid>
             </Grid>
 
-            {/* Modal Item (Metadata) */}
+            {/* Modal Item (MetadataModel) */}
             <Dialog open={openItemModal} onClose={() => setOpenItemModal(false)} fullWidth maxWidth="xs">
                 <DialogTitle>{editingItem ? 'Modifier' : 'Ajouter'}</DialogTitle>
                 <DialogContent>

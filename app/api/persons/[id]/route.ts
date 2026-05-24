@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '../../../../lib/services/mongodb';
 import Person from '@/lib/models/Person.model';
-import Metadata from '@/lib/models/Metadata'; // Si tu l'as
-import Vehicle from '@/lib/models/Vehicle.model'; // Le véhicule lui-même
-import CarModel from '@/lib/models/CarModel';
+import Vehicle from '@/lib/models/Vehicle.model';
+import CarModelModel from "@/lib/models/CarModel.model";
+import MetadataModel from "@/lib/models/Metadata.model"; // Le véhicule lui-même
+
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
@@ -15,7 +16,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         const person = await Person.findById(id)
             .populate({
                 path: 'sex origin personStatus hairColor hairType eyeColor',
-                model: Metadata
+                model: MetadataModel
             })
             .populate({
                 path: 'personRelations.person',
@@ -25,9 +26,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
                 path: 'vehicleRelations.vehicle',
                 model: Vehicle,
                 populate: [
-                    { path: 'brand', model: Metadata },
-                    { path: 'model', model: CarModel },
-                    { path: 'color', model: Metadata }
+                    { path: 'brand', model: MetadataModel },
+                    { path: 'model', model: CarModelModel },
+                    { path: 'color', model: MetadataModel }
                 ]
             });
 

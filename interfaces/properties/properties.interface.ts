@@ -1,5 +1,5 @@
 // ==========================================
-// 1. SECTION MÉTAPROPRIÉTÉS (Collection unique "Metadata")
+// 1. SECTION MÉTAPROPRIÉTÉS (Collection unique "MetadataModel")
 // ==========================================
 
 export type MetadataType =

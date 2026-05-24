@@ -1,5 +1,6 @@
-import { IMetadataItem } from "@/interfaces/properties.interface";
-import { IPerson } from "@/interfaces/person/person.interface"; // Ajuste le chemin selon ta structure
+
+import { IPerson } from "@/interfaces/person/person.interface";
+import {IMetadataItem} from "@/interfaces/properties/properties.interface"; // Ajuste le chemin selon ta structure
 
 export interface IVehicle {
     id: string; // Toujours pratique d'avoir l'id de l'entité véhicule
@@ -9,7 +10,7 @@ export interface IVehicle {
     createdAt?: Date;
     updatedAt?: Date;
 
-    // Métadonnées (Pointent vers la collection unique "Metadata")
+    // Métadonnées (Pointent vers la collection unique "MetadataModel")
     brand?: IMetadataItem;     // type: 'car-brand'
     carStatus?: IMetadataItem; // type: 'car-status'
     color?: IMetadataItem;     // type: 'car-color' (Tu l'avais dans tes interfaces de base, je l'ajoute ici !)

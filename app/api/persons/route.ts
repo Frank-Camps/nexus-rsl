@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '../../../lib/services/mongodb';
 import Person from '@/lib/models/Person.model';
-import Metadata from '@/lib/models/Metadata'; // On s'assure qu'il est chargé
+import MetadataModel from "@/lib/models/Metadata.model";
 
 export async function GET(request: Request) {
     try {
@@ -11,9 +11,9 @@ export async function GET(request: Request) {
         await dbConnect();
 
         // PETITE ASTUCE : Forcer l'initialisation si Mongoose est capricieux
-        // On s'assure que le modèle Metadata est bien compilé
-        if (!Metadata) {
-            throw new Error("Le modèle Metadata n'a pas pu être chargé");
+        // On s'assure que le modèle MetadataModel est bien compilé
+        if (!MetadataModel) {
+            throw new Error("Le modèle MetadataModel n'a pas pu être chargé");
         }
 
         const query = isTarget ? { isTarget: isTarget === 'true' } : {};
@@ -21,7 +21,7 @@ export async function GET(request: Request) {
         const persons = await Person.find(query)
             .populate({
                 path: 'sex origin personStatus',
-                model: Metadata // On force explicitement le modèle à utiliser pour le populate
+                model: MetadataModel // On force explicitement le modèle à utiliser pour le populate
             })
             .sort({ lastname: 1 });
 

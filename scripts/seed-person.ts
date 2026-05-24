@@ -1,15 +1,15 @@
 import dbConnect from '../lib/services/mongodb';
 import Person from '../lib/models/Person.model';
-import Metadata from '../lib/models/Metadata';
+import MetadataModel from '../lib/models/Metadata.model';
 
 export async function seedPersons() {
     await dbConnect();
 
     // 1. On récupère quelques IDs de métadonnées pour que ce soit réaliste
-    const homme = await Metadata.findOne({ name: 'Homme', type: 'sex' });
-    const caucasien = await Metadata.findOne({ name: 'Caucasien', type: 'origin' });
-    const actif = await Metadata.findOne({ name: 'Actif', type: 'person-status' });
-    const bleu = await Metadata.findOne({ name: 'Bleu', type: 'eye-color' });
+    const homme = await MetadataModel.findOne({ name: 'Homme', type: 'sex' });
+    const caucasien = await MetadataModel.findOne({ name: 'Caucasien', type: 'origin' });
+    const actif = await MetadataModel.findOne({ name: 'Actif', type: 'person-status' });
+    const bleu = await MetadataModel.findOne({ name: 'Bleu', type: 'eye-color' });
 
     const dummyPersons = [
         {
@@ -36,8 +36,8 @@ export async function seedPersons() {
             fps: "993012-C",
             wanted: false,
             isTarget: true,
-            sex: await Metadata.findOne({ name: 'Femme' }).then(m => m?._id),
-            origin: await Metadata.findOne({ name: 'Latino' }).then(m => m?._id),
+            sex: await MetadataModel.findOne({ name: 'Femme' }).then(m => m?._id),
+            origin: await MetadataModel.findOne({ name: 'Latino' }).then(m => m?._id),
             personStatus: actif?._id,
             notes: "Lien suspect avec le crime organisé. Surveillance discrète requise."
         },
@@ -50,7 +50,7 @@ export async function seedPersons() {
             isTarget: true,
             sex: homme?._id,
             origin: caucasien?._id,
-            personStatus: await Metadata.findOne({ name: 'En attente' }).then(m => m?._id),
+            personStatus: await MetadataModel.findOne({ name: 'En attente' }).then(m => m?._id),
             notes: "Expert en fraude informatique. Ne possède pas de véhicule connu."
         }
     ];

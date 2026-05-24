@@ -1,27 +1,27 @@
 import { NextResponse } from 'next/server';
-import dbConnect from "../../../lib/services/mongodb";
-import Vehicle from "@/lib/models/Vehicle.model";
+import dbConnect from "@/lib/services/mongodb";
 
-
+// 1. On importe explicitement avec des variables pour empêcher Next.js de les ignorer
+import Vehicle from '@/lib/models/Vehicle.model';
+import Metadata from '@/lib/models/Metadata.model'; // Assure-toi que ce nom correspond à ton fichier
+import CarModel from '@/lib/models/CarModel.model'; // Assure-toi que ce nom correspond à ton fichier
 
 export async function GET() {
     try {
-        // 1. Connexion à la base de données
         await dbConnect();
 
-        // 2. On récupère tous les véhicules.
-        // Bonus : On trie par date de création (les plus récents en premier)
-        const vehicles = await Vehicle.find({}).sort({ createdAt: -1 });
-        console.log('è', vehicles)
+        // 2. On injecte explicitement les modèles dans le populate
+        const vehicles = await Vehicle.find()
+            .populate({ path: 'brand', model: Metadata, select: 'name' })
+            .populate({ path: 'model', model: CarModel, select: 'name' })
+            .populate({ path: 'color', model: Metadata, select: 'name' })
+            .populate({ path: 'carStatus', model: Metadata, select: 'name' })
+            .sort({ createdAt: -1 })
+            .lean(); // 3. CRUCIAL : Force la conversion en JSON propre, sans les méthodes Mongoose qui causent des bugs
 
-        // 3. On renvoie le JSON au front-end (SWR)
         return NextResponse.json(vehicles);
-
     } catch (error: any) {
-        console.error("❌ Échec de la route GET /api/vehicles :", error);
-        return NextResponse.json(
-            { message: error.message || "Erreur interne du serveur lors de la récupération des véhicules." },
-            { status: 500 }
-        );
+        console.error("❌ Erreur lors de la récupération des véhicules:", error.message);
+        return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
     }
 }

@@ -28,7 +28,7 @@ export interface IPerson {
     piercings?: IPiercing[];
     scars?: IScar[];
 
-    // Métadonnées (Pointent toutes vers ta collection unique "Metadata")
+    // Métadonnées (Pointent toutes vers ta collection unique "MetadataModel")
     origin?: IMetadataItem;       // type: 'origin'
     sex?: IMetadataItem;          // type: 'sex'
     activitySector?: IMetadataItem; // type: 'sector'
